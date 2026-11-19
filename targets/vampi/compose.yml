@@ -1,0 +1,6 @@
+# One VAmPI service built from the pinned checkout; the run's variant sets `vulnerable`.
+services:
+  vampi:
+    build: .
+    environment:
+      - tokentimetolive=3600

@@ -1,0 +1,12 @@
+id: damn-vulnerable-mcp-server
+name: Damn Vulnerable MCP Server
+level: L1
+capabilities: [mcp, agent]
+source: {kind: git, url: https://github.com/harishsg993010/damn-vulnerable-MCP-server.git, commit: cdc4c6b5b76353203effcb26058e50fa6067d3a6, ref: main@2026-11-19}
+license: none declared (use locally; don't redistribute)
+homepage: https://github.com/harishsg993010/damn-vulnerable-MCP-server
+contamination: medium
+answer_key: Ten challenges (prompt injection, tool poisoning, excessive permissions, rug pull, tool shadowing, indirect injection, token theft, code execution, remote access, multi-vector).
+evaluations:
+  - {mode: agent-attack, key: documented-list, integration: planned}
+  - {mode: sast, key: documented-list, integration: planned}

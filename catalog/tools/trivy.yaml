@@ -1,0 +1,14 @@
+id: trivy
+name: Trivy
+role: baseline
+version: 0.76.2
+source: https://github.com/aquasecurity/trivy
+license: Apache-2.0
+modes:
+  sca:
+    command: bash {adapter_dir}/sca.sh {source_dir} {out_dir}
+    output: sarif
+  iac:
+    command: bash {adapter_dir}/iac.sh {source_dir} {out_dir}
+    output: sarif
+notes: The vulnerability database is downloaded at run time and changes daily.

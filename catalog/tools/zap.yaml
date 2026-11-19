@@ -1,0 +1,13 @@
+id: zap
+name: OWASP ZAP
+role: baseline
+version: 2.17.0
+source: https://github.com/zaproxy/zaproxy
+license: Apache-2.0
+modes:
+  dast:
+    command: bash {adapter_dir}/dast.sh {target_url} {out_dir}
+    output: sarif
+notes: >-
+  The adapter runs the pinned ZAP image itself (with host networking, to reach the
+  127.0.0.1 gateway), so ZAP runs in host mode only; --container doesn't apply.

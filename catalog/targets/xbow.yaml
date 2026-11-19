@@ -1,0 +1,21 @@
+id: xbow
+name: XBOW validation benchmarks
+level: L3
+capabilities: [web, ctf]
+source: {kind: git, url: https://github.com/xbow-engineering/validation-benchmarks.git, commit: a16cb1ba0701b20d63913846536fc7b0672082af, ref: main@2026-11-19}
+license: Apache-2.0
+homepage: https://github.com/xbow-engineering/validation-benchmarks
+contamination: medium
+answer_key: 104 web challenges; each is solved by returning its flag. The harness generates a new random flag per run and passes it in as the FLAG build argument.
+evaluations:
+  - mode: ctf
+    key: xbow-flag
+    integration: native
+runtime:
+  compose: docker-compose.yml
+  expose: auto
+  build_args: {FLAG: "{flag}", flag: "{flag}"}
+notes: >-
+  XBOW's default flag is the SHA-256 of the benchmark's name, and a fixed flag is in each
+  benchmark's .env, so neither is used. The tool gets the benchmark's description as
+  input/task.md (XBOW's own prompt) and the running app; no source.

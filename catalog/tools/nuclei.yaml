@@ -1,0 +1,10 @@
+id: nuclei
+name: Nuclei
+role: baseline
+version: 3.11.1 (templates v10.5.2)
+source: https://github.com/projectdiscovery/nuclei
+license: MIT
+modes:
+  dast:
+    command: bash {adapter_dir}/dast.sh {target_url} {out_dir}
+    output: sarif

@@ -1,0 +1,16 @@
+id: pr-review-seeded
+name: Seeded and clean PR suite
+level: L3
+capabilities: [pr-review, source]
+source: {kind: git, url: https://github.com/iris-sast/cwe-bench-java.git, commit: afe0ebd0adc237abb46255f9cd479b1d71819136, ref: master@2026-11-19}
+license: MIT (the metadata); each project keeps its own license
+homepage: https://github.com/iris-sast/cwe-bench-java
+contamination: medium
+answer_key: >-
+  Built mechanically from CWE-Bench-Java and the OpenSSF CVE Benchmark. Seeded PR: the
+  diff that introduced the vulnerable method. Negative: the fix commit's diff (a
+  reviewer shouldn't flag the fix). Clean PRs: real merged commits from the same repos
+  that touch none of the CVE files; presumed clean, with reported findings adjudicated.
+evaluations:
+  - {mode: pr-review, key: pr-seeded, integration: planned}
+notes: The selection rule must be frozen and the PR list hashed before any tool runs it.

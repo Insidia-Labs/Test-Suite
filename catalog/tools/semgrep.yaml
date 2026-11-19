@@ -1,0 +1,11 @@
+id: semgrep
+name: Semgrep CE
+role: baseline
+version: 1.186.0
+source: https://github.com/semgrep/semgrep
+license: LGPL-2.1-or-later
+modes:
+  sast:
+    command: bash {adapter_dir}/sast.sh {source_dir} {out_dir}
+    output: sarif
+notes: Uses the p/default registry ruleset, which is not pinned by Semgrep.

@@ -1,0 +1,10 @@
+id: gitleaks
+name: Gitleaks
+role: baseline
+version: 8.30.1
+source: https://github.com/gitleaks/gitleaks
+license: MIT
+modes:
+  secrets:
+    command: bash {adapter_dir}/secrets.sh {source_dir} {out_dir}
+    output: sarif

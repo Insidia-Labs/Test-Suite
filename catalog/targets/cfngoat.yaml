@@ -1,0 +1,12 @@
+id: cfngoat
+name: CfnGoat
+level: L1
+capabilities: [iac, cloudformation]
+source: {kind: git, url: https://github.com/bridgecrewio/cfngoat.git, commit: 0c09b69cfc3dbc6cb3ef01883415c35c588ced48, ref: 0.5.13}
+license: none declared (use locally; don't redistribute)
+homepage: https://github.com/bridgecrewio/cfngoat
+contamination: medium
+answer_key: Intentional misconfigurations in the CloudFormation template.
+evaluations:
+  - {mode: iac, key: documented-list, integration: planned}
+notes: The repository has no license file. The suite fetches it for local evaluation only and never copies it.

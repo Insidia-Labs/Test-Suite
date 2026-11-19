@@ -1,0 +1,23 @@
+id: cwe-bench-java
+name: CWE-Bench-Java
+level: L3
+capabilities: [source]
+source: {kind: git, url: https://github.com/iris-sast/cwe-bench-java.git, commit: afe0ebd0adc237abb46255f9cd479b1d71819136, ref: master@2026-11-19}
+license: MIT
+homepage: https://github.com/iris-sast/cwe-bench-java
+contamination: medium
+answer_key: >-
+  120 real Java CVEs (path traversal, OS command injection, XSS, code injection).
+  data/project_info.csv gives the repo, buggy commit and fix commits; data/fix_info.csv
+  gives the methods the fix changed. Each task is one project.
+evaluations:
+  - mode: sast
+    key: cwe-bench-java
+    integration: native
+    cwe_mode: family
+    line_tolerance: 2
+    variants:
+      - {name: vulnerable}
+      - {name: patched}
+    notes: Vulnerable = buggy commit, the fixed methods are positive. Patched = last fix commit, a related-CWE finding in a fixed file is a false positive (file-level control).
+notes: Each task fetches the project itself at the pinned commit from the CSV, so the first run of a task downloads that project.

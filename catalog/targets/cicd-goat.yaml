@@ -1,0 +1,13 @@
+id: cicd-goat
+name: CI/CD Goat
+level: L1
+capabilities: [ci, iac]
+source: {kind: git, url: https://github.com/cider-security-research/cicd-goat.git, commit: 0ed10925f3983857cf219b2ac1c327b861fcccca, ref: 1.2.7}
+license: Apache-2.0
+homepage: https://github.com/cider-security-research/cicd-goat
+contamination: medium
+answer_key: Eleven challenges mapped to the OWASP Top 10 CI/CD risks; each has a flag.
+evaluations:
+  - {mode: ctf, key: upstream-jsonl, integration: planned}
+  - {mode: iac, key: documented-list, integration: planned}
+notes: "Its compose file runs privileged services (prod, gitlab-runner, a Docker-in-Docker daemon), which the suite's isolation refuses; it needs a VM-based runtime."

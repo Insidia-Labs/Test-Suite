@@ -1,0 +1,11 @@
+id: ai-goat
+name: AI Goat
+level: L1
+capabilities: [llm-app]
+source: {kind: git, url: https://github.com/dhammon/ai-goat.git, commit: b3c8757d2887e44d3e9ea97893126511504e89d5, ref: main@2026-11-19}
+license: GPL-2.0
+homepage: https://github.com/dhammon/ai-goat
+contamination: medium
+answer_key: CTF challenges against a local LLM, each with a flag.
+evaluations:
+  - {mode: ctf, key: upstream-jsonl, integration: planned}

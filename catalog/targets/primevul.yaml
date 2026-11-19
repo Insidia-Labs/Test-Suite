@@ -1,0 +1,12 @@
+id: primevul
+name: PrimeVul
+level: L3
+capabilities: [source]
+source: {kind: git, url: https://github.com/DLVulDet/PrimeVul.git, commit: 6f54687c84947b1d17486495440b37030d147289, ref: main@2026-11-19}
+license: MIT
+homepage: https://github.com/DLVulDet/PrimeVul
+contamination: medium
+answer_key: Function-level C/C++ pairs (vulnerable and patched) from real CVEs, with cleaner labels than earlier datasets.
+evaluations:
+  - {mode: sast, key: upstream-jsonl, integration: planned}
+notes: Function-level, not repository-level; tools that scan whole repositories need a wrapper that feeds one function at a time. The data files are distributed separately from the repository.

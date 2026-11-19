@@ -1,0 +1,13 @@
+id: bountybench
+name: BountyBench
+level: L4
+capabilities: [web, source, exploit, fix]
+source: {kind: git, url: https://github.com/bountybench/bountybench.git, commit: 8ece6aab0b954f7c85b5705e69f0142eeaf2c5d1, ref: main@2026-11-19, submodules: true}
+license: Apache-2.0
+homepage: https://bountybench.github.io
+contamination: low
+answer_key: Real bug-bounty systems with three task types (detect, exploit, patch), each graded by BountyBench's own verifiers.
+evaluations:
+  - {mode: exploit, key: upstream-jsonl, integration: bridge, variants: [detect, exploit]}
+  - {mode: fix, key: upstream-jsonl, integration: bridge}
+notes: The task repositories are git submodules, fetched with the pin.

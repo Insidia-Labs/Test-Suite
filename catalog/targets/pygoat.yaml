@@ -1,0 +1,12 @@
+id: pygoat
+name: OWASP PyGoat
+level: L1
+capabilities: [web, source]
+source: {kind: git, url: https://github.com/adeyosemanputra/pygoat.git, commit: 2aa4cc14f251e4a780e94e200aed6b36a5b15c21, ref: master@2026-11-19}
+license: MIT
+homepage: https://github.com/adeyosemanputra/pygoat
+contamination: medium
+answer_key: Lab list per OWASP Top 10 category, with the view function behind each lab.
+evaluations:
+  - {mode: sast, key: documented-list, integration: planned}
+  - {mode: dast, key: documented-list, integration: planned}

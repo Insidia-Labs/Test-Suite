@@ -1,0 +1,12 @@
+id: terragoat
+name: TerraGoat
+level: L1
+capabilities: [iac, terraform]
+source: {kind: git, url: https://github.com/bridgecrewio/terragoat.git, commit: 729f8da62c6a85ce4af5ad3d123de97776d954c4, ref: master@2026-11-19}
+license: Apache-2.0
+homepage: https://github.com/bridgecrewio/terragoat
+contamination: medium
+answer_key: Intentional misconfigurations per Terraform resource (AWS, Azure, GCP). Upstream doesn't publish a per-resource list, so one has to be transcribed with evidence.
+evaluations:
+  - {mode: iac, key: documented-list, integration: planned}
+notes: Static scan only; never apply this Terraform to a real cloud account.

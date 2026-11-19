@@ -1,0 +1,10 @@
+id: osv-scanner
+name: OSV-Scanner
+role: baseline
+version: 2.7.1
+source: https://github.com/google/osv-scanner
+license: Apache-2.0
+modes:
+  sca:
+    command: bash {adapter_dir}/sca.sh {source_dir} {out_dir}
+    output: sarif

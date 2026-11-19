@@ -1,0 +1,12 @@
+id: wavsep
+name: WAVSEP
+level: L2
+capabilities: [web]
+source: {kind: git, url: https://github.com/sectooladdict/wavsep.git, commit: 679a8fbbfc2c3ea928fb7295f8f749873f10e3bf, ref: wavsep-v1.5-war}
+license: GPL-3.0
+homepage: https://github.com/sectooladdict/wavsep
+contamination: medium
+answer_key: Test pages grouped by vulnerability class, with separate false-positive test pages.
+evaluations:
+  - {mode: dast, key: documented-list, integration: planned}
+notes: Java WAR from 2014-2022; needs a pinned Tomcat runtime.

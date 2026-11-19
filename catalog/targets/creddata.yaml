@@ -1,0 +1,23 @@
+id: creddata
+name: Samsung CredData
+level: L2
+capabilities: [secrets]
+source: {kind: git, url: https://github.com/Samsung/CredData.git, commit: 2faad4f03c32c3ff1fe3e7d129fa60913b475ba4, ref: main@2026-11-19}
+license: Apache-2.0
+homepage: https://github.com/Samsung/CredData
+contamination: low
+answer_key: meta/*.csv labels each candidate line T (real credential) or F (not one), with file and line range.
+evaluations:
+  - mode: secrets
+    key: creddata
+    integration: native
+    cwe_mode: any
+    params:
+      requires_paths: [data]
+view:
+  include: [data]
+notes: >-
+  The scanned files come from CredData's own download_data.py, which clones the
+  labelled repositories and obfuscates real secrets. Run it once inside the fetched
+  checkout (python download_data.py --data_dir data) before the first run; the harness
+  refuses to run while data/ is missing.

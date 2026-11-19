@@ -1,0 +1,30 @@
+id: owasp-benchmark-python
+name: OWASP Benchmark for Python
+level: L2
+capabilities: [web, source]
+source: {kind: git, url: https://github.com/OWASP-Benchmark/BenchmarkPython.git, commit: f1291485808b66e20ddb6b01b10dc71b3df8c8ba, ref: main@2026-11-19}
+license: GPL-3.0
+homepage: https://github.com/OWASP-Benchmark/BenchmarkPython
+contamination: medium
+answer_key: expectedresults-0.1.csv, 1,230 test cases in 14 CWE categories, with true and false cases in each.
+evaluations:
+  - mode: sast
+    key: owasp-benchmark
+    integration: native
+    cwe_mode: family
+    params: {expected_results: expectedresults-0.1.csv}
+  - mode: dast
+    key: owasp-benchmark
+    integration: planned
+    params: {expected_results: expectedresults-0.1.csv}
+    notes: The key is ready; the Flask app (app.py) still needs a pinned container runtime.
+view:
+  exclude:
+    - expectedresults-*.csv
+    - results
+    - scripts
+    - createScorecards.sh
+    - scoringconfigfile.yaml
+    - "*.URL"
+    - "*.bat"
+notes: Released 2025-26 (v0.1), so less likely to be in model training data than the Java edition.

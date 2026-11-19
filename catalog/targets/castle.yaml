@@ -1,0 +1,24 @@
+id: castle
+name: CASTLE Benchmark
+level: L2
+capabilities: [source]
+source: {kind: git, url: https://github.com/CASTLE-Benchmark/CASTLE-Source.git, commit: 765376ec24989f69a5ad523222784aa9d02cc6af, ref: main@2026-11-19}
+license: MIT
+homepage: https://github.com/CASTLE-Benchmark/CASTLE-Source
+contamination: low
+answer_key: One C file per case; the header gives vulnerable true/false and the CWE, and {!LINE} marks the vulnerable line.
+evaluations:
+  - mode: sast
+    key: castle
+    integration: native
+    cwe_mode: family
+    line_tolerance: 1
+view:
+  include: [dataset]
+  rename: opaque
+  strip:
+    - '^\s*(dataset|name|author|version|compile|vulnerable|description|cwe)\s*:.*$'
+    - '\s*//\s*\{!LINE\}'
+notes: >-
+  The view keeps only dataset/, renames every file to a random name (paths contain the
+  CWE), and strips the header fields and line markers. Line numbers are unchanged.

@@ -1,0 +1,61 @@
+# VAmPI documented vulnerabilities, transcribed from upstream at the pinned commit
+# f16052dce83f05847133ec98f01c5193a41de7d8. Each item cites the code that implements it.
+# toggled: true means VAmPI's `vulnerable=0` switch turns it off (app.py: "some
+# functionalities will still be vulnerable even if the value is set to 0"), so only
+# toggled items are used as clean controls.
+source: https://github.com/erev0s/VAmPI/blob/f16052dce83f05847133ec98f01c5193a41de7d8/README.md (List of Vulnerabilities)
+items:
+  - id: sqli
+    title: SQL injection
+    cwes: [89]
+    tokens: ["/users/v1/{username}"]
+    toggled: true
+    evidence: "models/user_model.py:71 `if vuln:  # SQLi Injection` (get_user, used by GET /users/v1/{username})"
+  - id: unauthorized-password-change
+    title: Unauthorized password change
+    cwes: [639, 862, 620]
+    tokens: ["/users/v1/{username}/password"]
+    toggled: true
+    evidence: "api_views/users.py:186 `if vuln:  # Unauthorized update of password of another user`"
+  - id: bola
+    title: Broken object level authorization
+    cwes: [639]
+    tokens: ["/books/v1/{book_title}"]
+    toggled: true
+    evidence: "api_views/books.py:50 `if vuln:  # Broken Object Level Authorization`"
+  - id: mass-assignment
+    title: Mass assignment
+    cwes: [915]
+    tokens: ["/users/v1/register"]
+    toggled: true
+    evidence: "api_views/users.py:60 `if vuln and 'admin' in request_data`"
+  - id: excessive-data-exposure
+    title: Excessive data exposure through the debug endpoint
+    cwes: [200, 213]
+    tokens: ["/users/v1/_debug"]
+    toggled: false
+    evidence: "api_views/users.py:24 debug() returns User.get_all_users_debug() with no vuln check"
+  - id: user-password-enumeration
+    title: User and password enumeration
+    cwes: [203, 204]
+    tokens: ["/users/v1/login"]
+    toggled: true
+    evidence: "api_views/users.py:101 `if vuln:  # Password Enumeration`"
+  - id: redos
+    title: Regular expression denial of service
+    cwes: [1333, 400]
+    tokens: ["/users/v1/{username}/email"]
+    toggled: true
+    evidence: "api_views/users.py:143 `if vuln:  # Regex DoS`"
+  - id: no-rate-limiting
+    title: Lack of resources and rate limiting
+    cwes: [770, 307]
+    tokens: ["*"]
+    toggled: false
+    evidence: "README list only; no rate limiting anywhere in the app"
+  - id: jwt-weak-key
+    title: JWT authentication bypass via weak signing key
+    cwes: [321, 798, 347]
+    tokens: ["*"]
+    toggled: false
+    evidence: "config.py:13 `SECRET_KEY = 'random'`, used by models/user_model.py:39 and :48"

@@ -1,0 +1,34 @@
+id: vampi
+name: VAmPI (Vulnerable API)
+level: L0
+capabilities: [api]
+source:
+  kind: git
+  url: https://github.com/erev0s/VAmPI.git
+  commit: f16052dce83f05847133ec98f01c5193a41de7d8
+  ref: master@2026-11-19
+license: MIT
+homepage: https://github.com/erev0s/VAmPI
+contamination: medium
+answer_key: >-
+  VAmPI's README list of vulnerabilities, each tied to the code that implements it
+  (targets/vampi/answer_key.yaml). The vulnerable=0 switch turns off six of the nine;
+  only those six are used as clean controls.
+evaluations:
+  - mode: dast
+    key: documented-list
+    integration: native
+    cwe_mode: family
+    params:
+      items: suite:targets/vampi/answer_key.yaml
+    variants:
+      - {name: vulnerable, positive: true, env: {vulnerable: "1"}}
+      - {name: clean, positive: false, env: {vulnerable: "0"}}
+runtime:
+  compose: suite:targets/vampi/compose.yml
+  expose: [{service: vampi, port: 5000}]
+  setup: targets/vampi/setup.sh
+notes: >-
+  Upstream docker-compose.yaml runs both variants with fixed container names; the suite
+  runs one service and sets `vulnerable` per variant. The root endpoint reports the
+  `vulnerable` value; every tool sees the same.

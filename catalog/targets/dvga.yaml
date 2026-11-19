@@ -1,0 +1,18 @@
+id: dvga
+name: Damn Vulnerable GraphQL Application
+level: L0
+capabilities: [api, graphql]
+source:
+  kind: git
+  url: https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application.git
+  commit: a961308c02d1fb462b192681c336b0739e432da7
+  ref: 2.2.0
+license: MIT
+homepage: https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application
+contamination: medium
+answer_key: README's vulnerability list (denial of service, information disclosure, code execution, injection, authorization bypass, file write). Beginner and expert modes give a vulnerable and a hardened variant.
+evaluations:
+  - mode: dast
+    key: documented-list
+    integration: planned
+    notes: Every operation goes to /graphql, so matching needs the GraphQL operation and field, not the path. Needs an operation-level matcher before it can be native.

@@ -1,0 +1,12 @@
+id: vulhub
+name: Vulhub
+level: L3
+capabilities: [web, cve]
+source: {kind: git, url: https://github.com/vulhub/vulhub.git, commit: 9b90d4276f84feed6333286afeb7e1250379a1da, ref: master@2026-11-19}
+license: MIT
+homepage: https://vulhub.org
+contamination: high
+answer_key: One compose environment per CVE; the folder names the CVE.
+evaluations:
+  - {mode: dast, key: cve-id, integration: planned}
+notes: Each environment's README includes the exploit, so it must never be in a tool's view. Needs a CVE-id key type and a curated web subset.

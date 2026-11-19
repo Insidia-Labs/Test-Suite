@@ -1,0 +1,12 @@
+id: pyrit
+name: PyRIT
+role: baseline
+version: 1.2.1
+source: https://github.com/Azure/PyRIT
+license: MIT
+status: not-yet-available
+modes: {}
+notes: >-
+  An LLM attack tool. Its natural targets here are the LLM-app and agent targets
+  (Damn Vulnerable LLM Agent, Damn Vulnerable MCP Server, AI Goat, AgentDojo), which are
+  planned or bridged; the adapter is added with them.

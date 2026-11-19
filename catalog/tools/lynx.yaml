@@ -1,0 +1,12 @@
+id: lynx
+name: Insidia Lynx
+role: under-test
+version: unreleased
+source: https://github.com/Rushi-Balapure/Insidia-Labs-Lynx
+license: GPL-3.0
+status: not-yet-available
+modes: {}
+notes: >-
+  Not built yet. When it is, add an adapter per mode under adapters/lynx/ that follows
+  ADAPTERS.md (SARIF out, exit 0 when finished). Lynx's expected modes: sast, secrets, sca,
+  dast, ctf, agent-attack, exploit, fix and pr-review.
