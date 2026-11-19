@@ -10,7 +10,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from itsuite import FREEZE_DATE, __version__
+from itsuite import FREEZE_DATE, __version__, adapter_check, tools
 from itsuite.catalog import Catalog, load_catalog
 from itsuite.fetch import FetchError, fetch
 from itsuite.keys import REGISTRY
@@ -209,6 +209,42 @@ def cmd_report(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) ->
     return 0
 
 
+def cmd_tools(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
+    ids = [t for t in catalog.tools if catalog.tools[t].install] if args.all else args.ids
+    if args.action == "list" or not ids:
+        rows = [["tool", "version", "install", "installed", "verified"]]
+        for tool in catalog.tools.values():
+            kind = tool.install.kind if tool.install else "-"
+            have = "yes" if tools.installed(tool, paths.cache) else "-"
+            rows.append([tool.id, tool.version, kind, have, "yes" if tool.verified else "no"])
+        _print_table(rows)
+        return 0
+    failed = 0
+    for tool_id in ids:
+        try:
+            provided = tools.install(catalog.tools[tool_id], paths.cache)
+            print(f"{tool_id}: {', '.join(provided)}")
+        except tools.ToolInstallError as exc:
+            failed += 1
+            print(f"{tool_id}: FAILED {exc}", file=sys.stderr)
+    print(f"tools are in {tools.bin_dir(paths.cache)}")
+    return 1 if failed else 0
+
+
+def cmd_check_adapter(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
+    tool = catalog.tools[args.tool]
+    mode = Mode(args.mode)
+    if mode not in tool.modes:
+        raise RunError(f"{tool.id} has no {mode.value} adapter")
+    source = str(Path(args.source).resolve()) if args.source else ""
+    result = adapter_check.check(tool, mode, paths.root, source, args.url or "", args.timeout)
+    print(f"{tool.id} {mode.value}: {result.status}; findings: {result.findings}; "
+          f"version: {result.reported_version or '?'}; output: {result.out_dir}")  # fmt: skip
+    if result.detail:
+        print(result.detail, file=sys.stderr)
+    return 0 if result.status == "ok" else 1
+
+
 def cmd_doctor(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
     print(f"itsuite {__version__} (frozen {FREEZE_DATE}), root {paths.root}")
     print(f"answer-key plugins: {', '.join(sorted(REGISTRY))}")
@@ -250,6 +286,16 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument("--format", choices=["agentdojo", "jsonl"], required=True)
     imp.add_argument("--tool", required=True)
     imp.add_argument("--target", required=True)
+    tl = sub.add_parser("tools", help="install tools at their pinned versions, or list them")
+    tl.add_argument("action", choices=["install", "list"])
+    tl.add_argument("ids", nargs="*")
+    tl.add_argument("--all", action="store_true")
+    ca = sub.add_parser("check-adapter", help="run one adapter once and check its output parses")
+    ca.add_argument("--tool", required=True)
+    ca.add_argument("--mode", required=True, choices=[m.value for m in Mode])
+    ca.add_argument("--source", help="folder to scan (source modes)")
+    ca.add_argument("--url", help="URL to scan (live modes)")
+    ca.add_argument("--timeout", type=int, default=1800)
     rep = sub.add_parser("report", help="summarize scored runs")
     rep.add_argument("--results")
     rep.add_argument("--json", action="store_true")
@@ -265,6 +311,8 @@ COMMANDS = {
     "import-upstream": cmd_import,
     "report": cmd_report,
     "doctor": cmd_doctor,
+    "tools": cmd_tools,
+    "check-adapter": cmd_check_adapter,
 }
 
 

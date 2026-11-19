@@ -51,6 +51,27 @@ passed by name (`docker run -e NAME`), the adapter folder is at `/its/adapter`,
 `common.sh` is at `/its/common.sh`, and a live target is reached through its
 gateway on the edge network.
 
+## Installing the tool
+
+Add an `install` block so `itsuite tools install <id>` can install the exact
+version into `.cache/tools`:
+
+```yaml
+install:
+  kind: archive       # archive | binary | pip | docker
+  url: https://github.com/example/mytool/releases/download/v2.3.1/mytool_linux_amd64.tar.gz
+  sha256: <64 hex>    # the download is refused if it doesn't match
+  binary: mytool      # the executable inside the archive
+# pip:    packages: [mytool==2.3.1]  binaries: [mytool]
+# docker: image: ghcr.io/example/mytool:2.3.1@sha256:...
+```
+
+Then check the adapter end to end before setting `verified: true`:
+
+```bash
+uv run itsuite check-adapter --tool mytool --mode sast --source /path/to/code
+```
+
 ## Rules for the script
 
 1. **Exit 0 when the tool finished, whatever it found.** Exit non-zero only when

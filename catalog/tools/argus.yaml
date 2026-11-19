@@ -17,3 +17,7 @@ modes:
 notes: >-
   Runs the installed `insidia` CLI with policy L1. Set ITS_ARGUS_KIND (web, api, chat...)
   to override the target kind Argus would guess from the URL.
+install:
+  kind: pip
+  packages: ['insidia @ git+https://github.com/Rushi-Balapure/Insidia-Labs-Argus@f783775a18b5b940012be0f3f3e75b058e743dc3#subdirectory=core']
+  binaries: [insidia]

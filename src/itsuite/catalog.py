@@ -16,6 +16,7 @@ from itsuite.models import (
     Contamination,
     Evaluation,
     Expose,
+    Install,
     Integration,
     Level,
     Mode,
@@ -184,6 +185,32 @@ def parse_tool_mode(data: Mapping[str, Any], ctx: str) -> ToolMode:
     )
 
 
+INSTALL_KINDS = ("archive", "binary", "pip", "docker")
+
+
+def parse_install(data: Mapping[str, Any] | None, ctx: str) -> Install | None:
+    if not data:
+        return None
+    kind = str(_field(data, "kind", ctx))
+    if kind not in INSTALL_KINDS:
+        raise CatalogError(f"{ctx}: install kind must be one of {INSTALL_KINDS}")
+    install = Install(
+        kind=kind, url=str(data.get("url", "")), sha256=str(data.get("sha256", "")),
+        binary=str(data.get("binary", "")), packages=_strings(data, "packages"),
+        binaries=_strings(data, "binaries"), image=str(data.get("image", "")),
+    )  # fmt: skip
+    if kind in ("archive", "binary"):
+        if not install.url.startswith("https://") or not SHA256_RE.match(install.sha256):
+            raise CatalogError(f"{ctx}: {kind} installs need an https url and a sha256")
+        if not install.binary:
+            raise CatalogError(f"{ctx}: {kind} installs need a binary name")
+    if kind == "pip" and not all("==" in p or "@" in p for p in install.packages):
+        raise CatalogError(f"{ctx}: pip packages must be pinned (name==version or name @ url)")
+    if kind == "docker" and "@sha256:" not in install.image:
+        raise CatalogError(f"{ctx}: docker installs must pin the image by digest")
+    return install
+
+
 def parse_tool(data: Mapping[str, Any], ctx: str) -> ToolSpec:
     tool_id = str(_field(data, "id", ctx))
     if not ID_RE.match(tool_id):
@@ -211,6 +238,7 @@ def parse_tool(data: Mapping[str, Any], ctx: str) -> ToolSpec:
         env_passthrough=_strings(data, "env_passthrough"),
         verified=bool(data.get("verified", False)),
         notes=str(data.get("notes", "")),
+        install=parse_install(data.get("install"), f"{ctx} [install]"),
     )
 
 

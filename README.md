@@ -30,15 +30,29 @@ XBOW.
 ## Quick start
 
 Needs Python 3.10+, [uv](https://docs.astral.sh/uv/), git and Docker (for live
-targets). Install the tool you're testing so its CLI is on `PATH` at the version
-its manifest pins.
+targets). The pinned tool downloads are for Linux x86-64.
 
 ```bash
 uv sync --extra dev
 uv run itsuite doctor
 uv run itsuite validate
 uv run itsuite list --level L0
+uv run itsuite tools install --all   # pinned versions, SHA-256 checked, into .cache/tools
+uv run itsuite tools list
 ```
+
+Tools are installed into the suite's own cache, never system-wide, and runs put
+`.cache/tools/bin` first on `PATH`. To check a tool's adapter without scoring
+anything, run it once against a folder or URL:
+
+```bash
+uv run itsuite check-adapter --tool gitleaks --mode secrets --source /path/to/code
+```
+
+The copies of target source that tools read (views) are built in
+`~/.cache/itsuite/views`, outside this repo. Set `ITS_VIEWS_DIR` to move them.
+Don't put them inside a git repo that ignores them: some tools (OSV-Scanner)
+honour an enclosing repo's `.gitignore` and would see nothing.
 
 Run one tool against one target:
 

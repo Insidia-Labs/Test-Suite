@@ -97,6 +97,7 @@ def suite(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> orchestrate.SuiteP
     write(src, "dataset/125/CASTLE-125-2.c", CASTLE_FILE.format(v="false"))
     write(src, "README.md", "the answers are in the headers")
     monkeypatch.setattr(orchestrate, "fetch", lambda source, dest: src)
+    monkeypatch.setenv("ITS_VIEWS_DIR", str(tmp_path / "views"))
     return orchestrate.SuitePaths(tmp_path / "suite")
 
 
@@ -109,7 +110,7 @@ def test_whitebox_run_end_to_end(suite: orchestrate.SuitePaths) -> None:
     run_dir = next(suite.results.iterdir())
     record = json.loads((run_dir / "run.json").read_text())
     assert record["status"] == "ok" and record["source_commit"] == "c" * 40
-    assert not (suite.cache / "views" / run_dir.name).exists()  # view removed after the run
+    assert not (suite.views / run_dir.name).exists()  # view removed after the run
 
 
 def test_crashing_tool_is_recorded_not_scored(suite: orchestrate.SuitePaths) -> None:
@@ -342,3 +343,12 @@ def test_app_down_after_the_run_is_a_target_error(
     request = orchestrate.RunRequest(tool, _vampi_target(suite.root), Mode.DAST, "vulnerable")
     score = orchestrate.run(request, suite)
     assert not score["scored"] and score["status"] == "target-error" and calls[-1] == "stop"
+
+
+def test_views_default_outside_the_suite_repo(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.delenv("ITS_VIEWS_DIR", raising=False)
+    paths = orchestrate.SuitePaths(tmp_path / "suite")
+    assert paths.views == Path.home() / ".cache" / "itsuite" / "views"
+    assert not str(paths.views).startswith(str(paths.root))

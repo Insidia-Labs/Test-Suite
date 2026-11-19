@@ -8,3 +8,8 @@ modes:
   sca:
     command: bash {adapter_dir}/sca.sh {source_dir} {out_dir}
     output: sarif
+install:
+  kind: binary
+  url: https://github.com/google/osv-scanner/releases/download/v2.7.1/osv-scanner_linux_amd64
+  sha256: fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8
+  binary: osv-scanner

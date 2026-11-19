@@ -9,3 +9,7 @@ modes:
     command: bash {adapter_dir}/sast.sh {source_dir} {out_dir}
     output: sarif
 notes: Uses the p/default registry ruleset, which is not pinned by Semgrep.
+install:
+  kind: pip
+  packages: [semgrep==1.186.0]
+  binaries: [semgrep, pysemgrep]

@@ -153,6 +153,25 @@ class ToolMode:
 
 
 @dataclass(frozen=True)
+class Install:
+    """How to install a tool at its pinned version into the suite's own cache.
+
+    archive: download ``url`` (checked against ``sha256``) and take ``binary`` from it.
+    binary:  download ``url`` (checked) and install it under the name ``binary``.
+    pip:     a virtualenv with ``packages`` (exact versions); expose ``binaries``.
+    docker:  pull ``image`` (pinned by digest).
+    """
+
+    kind: str
+    url: str = ""
+    sha256: str = ""
+    binary: str = ""
+    packages: tuple[str, ...] = ()
+    binaries: tuple[str, ...] = ()
+    image: str = ""
+
+
+@dataclass(frozen=True)
 class ToolSpec:
     id: str
     name: str
@@ -166,6 +185,7 @@ class ToolSpec:
     env_passthrough: tuple[str, ...] = ()
     verified: bool = False
     notes: str = ""
+    install: Install | None = None
 
 
 @dataclass(frozen=True)

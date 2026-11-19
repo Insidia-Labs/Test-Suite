@@ -12,3 +12,8 @@ modes:
     command: bash {adapter_dir}/iac.sh {source_dir} {out_dir}
     output: sarif
 notes: The vulnerability database is downloaded at run time and changes daily.
+install:
+  kind: archive
+  url: https://github.com/aquasecurity/trivy/releases/download/v0.76.2/trivy_0.76.2_Linux-64bit.tar.gz
+  sha256: bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf
+  binary: trivy

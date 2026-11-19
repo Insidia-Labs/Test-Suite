@@ -4,6 +4,7 @@ tool, stop the target, record what happened, score it."""
 from __future__ import annotations
 
 import json
+import os
 import re
 import secrets
 import shutil
@@ -15,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from itsuite import container, live
+from itsuite.adapter_check import tool_env
 from itsuite.docker_ops import DockerError
 from itsuite.fetch import fetch
 from itsuite.isolation import EDGE_NETWORK, IsolationError, gateway_name
@@ -23,7 +25,7 @@ from itsuite.keys.base import AnswerKey, KeyContext, KeyPlugin, KeyStore, Task
 from itsuite.keys.flags import new_flag
 from itsuite.keys.juice_shop import fetch_solved
 from itsuite.models import Evaluation, Integration, Mode, Source, TargetSpec, ToolMode, ToolSpec
-from itsuite.runner import ExecResult, clean_env, execute, final_status, render_command
+from itsuite.runner import ExecResult, execute, final_status, render_command
 from itsuite.scoring import score_run
 from itsuite.view import build_view, save_path_map, view_salt
 
@@ -51,6 +53,14 @@ class SuitePaths:
     @property
     def keys(self) -> KeyStore:
         return KeyStore(self.cache / "keys")
+
+    @property
+    def views(self) -> Path:
+        """Where tool views are built: outside the suite's git repo by default. Some tools
+        (OSV-Scanner) honour the .gitignore of an enclosing repo, and the suite's repo
+        ignores .cache/, so a view inside it would look empty to them."""
+        configured = os.environ.get("ITS_VIEWS_DIR")
+        return Path(configured) if configured else Path.home() / ".cache" / "itsuite" / "views"
 
     def private(self, run_name: str) -> Path:
         """Harness-only files for one run (path map, isolated compose with the flag).
@@ -210,7 +220,7 @@ def _its_env(request: RunRequest, values: Mapping[str, str]) -> dict[str, str]:
 def _make_view(request: RunRequest, prep: Prepared, run_dir: Path, paths: SuitePaths) -> str:
     if request.mode not in WHITEBOX:
         return ""
-    view_root = paths.cache / "views" / run_dir.name
+    view_root = paths.views / run_dir.name
     src = prep.source_dir / prep.task.subdir if prep.task.subdir else prep.source_dir
     result = build_view(src, view_root, request.target.view, view_salt(paths.cache / "private"))
     save_path_map(result, paths.private(run_dir.name) / "path_map.json")
@@ -263,7 +273,7 @@ def _execute_tool(
     url = url or (target.base_url if target else "")
     values = _values(request, run_dir, view_dir, url, paths)
     command = render_command(prep.tool_mode.command, values)
-    env = clean_env(request.tool.env_passthrough, _its_env(request, values))
+    env = tool_env(request.tool, paths.cache, _its_env(request, values))
     if not request.container:
         return execute(command, run_dir / "out", env, request.wall_seconds, run_dir)
     names = tuple(

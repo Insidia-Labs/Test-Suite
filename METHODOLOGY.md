@@ -87,8 +87,12 @@ from container mode.
 ### 1.4 Everything is pinned
 
 Each target is pinned to a full git commit (or an archive SHA-256). The fetcher
-refuses to continue if the checked-out commit is different. Tool versions are
-pinned in `catalog/tools/`. Helper images (the port gateway and the egress probe)
+refuses to continue if the checked-out commit is different, and resets a cached
+checkout that a build or container wrote into. Tool versions are pinned in
+`catalog/tools/`, and `itsuite tools install` installs exactly those versions:
+release downloads are kept only if their SHA-256 matches the manifest, Python
+tools get exact `==` pins, and images are pulled by digest. Each adapter refuses
+any other version. Helper images (the port gateway and the egress probe)
 are pinned by tag and digest in `src/itsuite/isolation.py`.
 
 Pins were taken on 2026-11-19. The rule was the HEAD of the default branch, with

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import shutil
 import subprocess
 import tarfile
@@ -106,22 +107,34 @@ def extract(archive: Path, dest: Path) -> None:
             bundle.extractall(dest, members=members)
 
 
+def download(
+    url: str, sha256: str, dest: Path, opener: Callable[..., Any] = urllib.request.urlopen
+) -> Path:
+    """Download over https to ``dest``, keeping it only if its SHA-256 matches the pin."""
+    if dest.exists() and sha256_file(dest) == sha256:
+        return dest
+    if not url.startswith("https://"):
+        raise FetchError("downloads are only fetched over https")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    part = dest.with_name(dest.name + ".part")
+    with opener(url, timeout=600) as response, part.open("wb") as handle:
+        shutil.copyfileobj(response, handle)
+    actual = sha256_file(part)
+    if actual != sha256:
+        part.unlink()
+        raise FetchError(f"{dest.name}: sha256 {actual} does not match pinned {sha256}")
+    os.replace(part, dest)
+    return dest
+
+
 def fetch_archive(
     source: Source, dest: Path, opener: Callable[..., Any] = urllib.request.urlopen
 ) -> Path:
     marker = dest / ".itsuite-sha256"
     if marker.exists() and marker.read_text(encoding="utf-8").strip() == source.sha256:
         return dest
-    if not source.url.startswith("https://"):
-        raise FetchError("archives are only fetched over https")
     dest.mkdir(parents=True, exist_ok=True)
-    part = dest.parent / (dest.name + ".download")
-    with opener(source.url, timeout=600) as response, part.open("wb") as handle:
-        shutil.copyfileobj(response, handle)
-    actual = sha256_file(part)
-    if actual != source.sha256:
-        part.unlink()
-        raise FetchError(f"archive sha256 {actual} does not match pinned {source.sha256}")
+    part = download(source.url, source.sha256, dest.parent / (dest.name + ".download"), opener)
     extract(part, dest)
     part.unlink()
     marker.write_text(source.sha256, encoding="utf-8")
