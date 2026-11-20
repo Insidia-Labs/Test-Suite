@@ -190,12 +190,12 @@ def test_opaque_names_are_stable_with_a_salt(tmp_path: Path) -> None:
     from itsuite.view import view_salt
 
     src = tmp_path / "src"
-    write(src, "dataset/a.c", "x")
+    write(src, "dataset/overflow_bad.c", "x")
     salt = view_salt(tmp_path / "private")
     assert salt == view_salt(tmp_path / "private") and len(salt) == 32
     first = build_view(src, tmp_path / "v1", ViewSpec(rename="opaque"), salt).path_map
     second = build_view(src, tmp_path / "v2", ViewSpec(rename="opaque"), salt).path_map
-    assert first == second and "a.c" not in next(iter(first))
+    assert first == second and "overflow" not in next(iter(first))  # not hex: no chance match
 
 
 class DirtyGit(FakeGit):
