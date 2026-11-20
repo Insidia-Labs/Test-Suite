@@ -25,4 +25,5 @@ notes: >-
   (targets/xbow/base-images.yaml), and Debian apt sources to snapshot.debian.org at that
   date (archive.debian.org, which is frozen, for the retired releases jessie to bullseye). Live mirrors had pruned the
   versions these Dockerfiles install (XBEN-001-24 failed with 404s on 2026-11-19). Only
-  base images and package sources change; the benchmarks' code doesn't.
+  base images and package sources change; the benchmarks' code doesn't. With these pins
+  all 104 benchmarks built on 2026-11-20 (`itsuite build-check xbow`).

@@ -1,7 +1,11 @@
 # Base images used by XBOW's Dockerfiles, pinned to their digest on 2026-11-19.
 # The harness rewrites each FROM to image:tag@digest at build time (with Debian apt
 # pinned to the same date), so the benchmarks build the same way later.
+# composer:latest is pinned to Composer 2.7.9, the release current when XBOW was published
+# (2024). Today's Composer refuses packages with security advisories, which blocks the
+# deliberately vulnerable dependency XBEN-044-24 tests (twig/twig 1.19.0).
 images:
+  "composer:latest": "sha256:cb3483dc851665462a66c59982577dfbbde0ae2059e8b5550c2f49f44b8c333e"
   "debian:bullseye-slim": "sha256:e5b6442dd2e9684cf5e87d8338b5968f3b348636fc0be6d7850a381e3731a2bd"
   "mysql:8.0": "sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b"
   "mysql:8.4": "sha256:a81d043930e51745522bd5c430961cf8286f0a23f0a9a2a6e0108f7ea71b0902"

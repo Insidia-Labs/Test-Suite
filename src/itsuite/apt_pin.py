@@ -64,11 +64,25 @@ def pin_from(line: str, bases: Mapping[str, str]) -> str:
     return f"{match.group(1)}{image}@{digest}{match.group(3)}" if digest else line
 
 
+_COPY_FROM = re.compile(r"^(\s*COPY\s+(?:--\S+\s+)*--from=)(\S+)(.*)$", re.IGNORECASE)
+
+
+def pin_copy_from(line: str, bases: Mapping[str, str]) -> str:
+    """COPY --from=image:tag -> --from=image:tag@digest (stage names are left alone)."""
+    match = _COPY_FROM.match(line)
+    if not match or "@" in match.group(2) or ":" not in match.group(2):
+        return line
+    digest = bases.get(match.group(2))
+    return f"{match.group(1)}{match.group(2)}@{digest}{match.group(3)}" if digest else line
+
+
 def pin_dockerfile(text: str, timestamp: str, bases: Mapping[str, str] | None = None) -> str:
     """Pin each FROM to its digest and, when ``timestamp`` is set, insert the apt
     snapshot step after every FROM whose stage uses apt."""
-    lines = [pin_from(line, bases or {}) if _FROM.match(line) else line
-             for line in text.splitlines()]  # fmt: skip
+    lines = [
+        pin_from(line, bases or {}) if _FROM.match(line) else pin_copy_from(line, bases or {})
+        for line in text.splitlines()
+    ]
     starts = [i for i, line in enumerate(lines) if _FROM.match(line)]
     if not starts:
         return text

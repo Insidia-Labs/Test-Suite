@@ -71,3 +71,18 @@ def test_with_build_pins_inlines_an_escaped_dockerfile(tmp_path: Path) -> None:
     assert spec["services"]["web"]["build"] == {"context": "./app", "args": ["FLAG"]}
     reparsed = yaml.safe_load(yaml.safe_dump(out))
     assert reparsed["services"]["web"]["build"]["dockerfile_inline"].count("FROM ") == 2
+
+
+def test_copy_from_images_are_pinned_but_stages_are_not() -> None:
+    bases = {"composer:latest": "sha256:" + "c" * 64}
+    assert apt_pin.pin_copy_from(
+        "COPY --from=composer:latest /usr/bin/composer /usr/bin/", bases
+    ) == ("COPY --from=composer:latest@sha256:" + "c" * 64 + " /usr/bin/composer /usr/bin/")
+    assert (
+        apt_pin.pin_copy_from("COPY --from=builder /app /app", bases)
+        == "COPY --from=builder /app /app"
+    )
+    assert (
+        apt_pin.pin_copy_from("COPY --chown=1:1 --from=composer:latest /a /b", bases).count("@")
+        == 1
+    )
