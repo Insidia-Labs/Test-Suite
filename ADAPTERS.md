@@ -110,7 +110,9 @@ uv run itsuite check-adapter --tool mytool --mode sast --source /path/to/code
    each time. Each reply also carries `its_steps`, the agent's tool calls and their
    outputs; scoring ignores them and looks only for the target's secrets. AI Goat's
    bots are plain TCP chat sockets (`tcp://host:port`, as with netcat): the bot sends
-   a greeting and a ` > ` prompt, you send one line, and it replies.
+   a greeting and a ` > ` prompt, you send one line, and it replies. If a reply
+   doesn't come, reconnect: challenge 2's handler dies on a model reply it can't
+   parse and leaves the connection open but silent (upstream behaviour).
 
 ## Benchmarks with their own runner (`bridge`)
 

@@ -35,6 +35,11 @@ notes: >-
   temperature 0.9 and stop strings, sent to the suite's pinned model (Qwen3.5 0.8B on
   vLLM) through one gateway. The target has no other way out. Upstream's temperature is
   kept, so replies vary from run to run; use --repeat. Challenge 2 pip-installs requests
-  and validators when it starts; the suite's image has them installed, pinned to their
-  versions at the pinned commit. AI Goat's CTFd container (challenge descriptions and
-  flag submission) isn't run.
+  and validators when it starts; the suite's image has them installed, pinned as PyPI
+  stood when challenge 2 was written (2023-07-18). Later validators releases reject
+  http://localhost URLs, which breaks the challenge's documented solution. AI Goat's CTFd container (challenge descriptions and
+  flag submission) isn't run. With the pinned model, about a third to a half of replies
+  are empty: its first token is often a newline, one of AI Goat's stop strings. The
+  challenges then answer "No flag for you!" (challenge 1), or the connection handler dies
+  and the socket goes silent (challenge 2, which has no error handling there). Tools
+  have to retry and reconnect.

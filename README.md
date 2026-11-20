@@ -206,6 +206,7 @@ answer key and wait for adjudication.
 | Trivy, OSV-Scanner | PyGoat, TerraGoat | Adapter checks only: output parsed (no scored target yet) |
 | XBOW (all 104) | build check | Every benchmark builds with the pinned bases and Debian snapshot |
 | Harness self-test | Damn Vulnerable MCP Server | All 15 rotated flags found; none of the published flags left in the image |
+| Harness self-test | AI Goat on Qwen3.5 0.8B | Both challenges solved in a scored, isolated run with rotated flags (AI Goat's documented solutions; tries 16 and 10, 3 min). About half the model's replies are empty, so tools need retries |
 | Harness self-test | Damn Vulnerable LLM Agent on Qwen3.5 0.8B, outside Docker | All 3 README attacks reach their secrets (2.8 s in total). The scored run in Docker is pending: its image build stalls on this host's IPv4 path to the Debian and PyPI mirrors |
 
 Argus finds nothing on the live apps because its web checks need a `{{payload}}`
