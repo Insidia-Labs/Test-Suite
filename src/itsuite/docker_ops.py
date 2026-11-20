@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import socket
 import subprocess
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -85,10 +86,22 @@ def egress_open(network: str, runner: Runner = subprocess.run) -> bool:
     return False
 
 
+_PORT_LOCK = threading.Lock()
+_HANDED_OUT: set[int] = set()
+
+
 def free_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind(("127.0.0.1", 0))
-        return int(sock.getsockname()[1])
+    """A free local port, never the same one twice in this process (parallel runs ask for
+    ports before their gateways bind them)."""
+    with _PORT_LOCK:
+        for _ in range(50):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.bind(("127.0.0.1", 0))
+                port = int(sock.getsockname()[1])
+            if port not in _HANDED_OUT:
+                _HANDED_OUT.add(port)
+                return port
+    raise DockerError("could not find a free local port")
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):

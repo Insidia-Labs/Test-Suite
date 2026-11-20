@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from itsuite.locks import file_lock
 from itsuite.models import Source, Variant
 
 MATCH_KINDS = ("token", "location", "flag", "challenge")
@@ -55,8 +56,18 @@ class AnswerKey:
 
     @property
     def name(self) -> str:
-        task = f"#{self.task}" if self.task else ""
-        return f"{self.target}@{self.variant}{task}"
+        """Unique per target, key type, variant and task. The key type matters because one
+        target can have several evaluations (Juice Shop: live challenges, source markers)."""
+        return f"{self.target}:{self.key_type}@{self.variant}{self._task_suffix}"
+
+    @property
+    def legacy_name(self) -> str:
+        """The name runs recorded before key types were part of it (2026-11-20)."""
+        return f"{self.target}@{self.variant}{self._task_suffix}"
+
+    @property
+    def _task_suffix(self) -> str:
+        return f"#{self.task}" if self.task else ""
 
 
 @dataclass(frozen=True)
@@ -195,6 +206,10 @@ class KeyStore:
         _write_atomic(self._path(value), json.dumps(key_to_dict(key), indent=1))
         if key.match == "flag":
             return value
+        with file_lock(self.root / ".keys.lock"):
+            return self._seal_locked(key, value)
+
+    def _seal_locked(self, key: AnswerKey, value: str) -> str:
         lock = self._lock()
         first = lock.get(key.name)
         if first is not None and first != value:
@@ -217,6 +232,6 @@ class KeyStore:
         key = key_from_dict(json.loads(path.read_text(encoding="utf-8")))
         if digest(key) != value:
             raise SealError(f"answer key {value[:12]} changed after it was sealed")
-        if name and key.name != name:
+        if name and name not in (key.name, key.legacy_name):
             raise SealError(f"answer key {value[:12]} is {key.name!r}, not {name!r}")
         return key

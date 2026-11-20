@@ -7,8 +7,9 @@ import json
 import os
 import random
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 from itsuite import (
     FREEZE_DATE,
@@ -17,6 +18,7 @@ from itsuite import (
     adjudication,
     images,
     live,
+    profile_runner,
     scorecard,
     tools,
 )
@@ -176,31 +178,35 @@ def profile_tasks(profile: Profile, catalog: Catalog, paths: SuitePaths) -> dict
 
 def cmd_profile(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
     profile = catalog.profiles[args.profile]
-    plan = plan_profile(profile, catalog, profile_tasks(profile, catalog, paths))
-    for target, mode, variant, task in plan:
-        print(f"{target} {mode} {variant} {task}".rstrip())
-    print(f"\n{len(plan)} runs x {profile.repeat} repeat(s), {profile.wall_seconds}s each")
+    tool = catalog.tools[args.tool]
+    full = plan_profile(profile, catalog, profile_tasks(profile, catalog, paths))
+    plan = [p for p in full if Mode(p[1]) in tool.modes]
+    skipped = sorted({f"{p[0]} {p[1]}" for p in full if Mode(p[1]) not in tool.modes})
+    if skipped:
+        print(f"skipped (no {tool.id} adapter for the mode): {', '.join(skipped)}")
+    items = profile_runner.expand(plan, profile.repeat)
+    ledger = profile_runner.Ledger(paths.results / f"profile-{profile.id}-{args.tool}.jsonl")
+    todo = profile_runner.pending(items, ledger, args.resume)
+    print(f"{len(items)} runs planned ({len(plan)} x {profile.repeat} repeat(s), "
+          f"{profile.wall_seconds}s each); {len(todo)} to run, {args.jobs} at a time")  # fmt: skip
     if args.dry_run:
+        for item in todo:
+            print(f"  {item.target} {item.mode} {item.variant} {item.task} #{item.repeat}")
         return 0
-    failures = 0
-    for target, mode, variant, task in plan:
-        ns = argparse.Namespace(
-            tool=args.tool,
-            target=target,
-            mode=mode,
-            variant=variant,
-            task=task,
-            container=args.container,
-            timeout=0,
-        )
-        for _ in range(profile.repeat):
-            try:
-                score = run_one(_request(ns, catalog, profile), paths)
-                failures += 0 if score.get("scored") else 1
-            except (RunError, FetchError, KeyBuildError) as exc:
-                failures += 1
-                print(f"{target} {variant} {task}: {exc}", file=sys.stderr)
-    return 1 if failures else 0
+
+    def run_item(item: profile_runner.PlanItem) -> Mapping[str, Any]:
+        ns = argparse.Namespace(tool=args.tool, target=item.target, mode=item.mode,
+                                variant=item.variant, task=item.task, container=args.container,
+                                timeout=0)  # fmt: skip
+        return run_one(_request(ns, catalog, profile), paths)
+
+    def report(item: profile_runner.PlanItem, outcome: Mapping[str, Any]) -> None:
+        state = "scored" if outcome.get("scored") else f"NOT SCORED ({outcome.get('status')})"
+        print(f"{item.target} {item.variant} {item.task} #{item.repeat}: {state}", flush=True)
+
+    counts = profile_runner.run(todo, run_item, ledger, args.jobs, report)
+    print(f"{counts['scored']} scored, {counts['not_scored']} not scored; ledger: {ledger.path}")
+    return 1 if counts["not_scored"] else 0
 
 
 def cmd_import(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
@@ -385,6 +391,8 @@ def build_parser() -> argparse.ArgumentParser:
     prof = sub.choices["profile"]
     prof.add_argument("profile")
     prof.add_argument("--dry-run", action="store_true")
+    prof.add_argument("--jobs", type=int, default=1, help="runs at the same time")
+    prof.add_argument("--resume", action="store_true", help="skip runs the ledger has scored")
     imp = sub.add_parser("import-upstream", help="import results from a bridge benchmark")
     imp.add_argument("path")
     imp.add_argument("--format", choices=["agentdojo", "jsonl"], required=True)

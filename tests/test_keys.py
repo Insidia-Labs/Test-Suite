@@ -304,7 +304,7 @@ def test_key_round_trip_and_digest_is_stable() -> None:
     key = _key()
     assert key_from_dict(key_to_dict(key)) == key
     assert digest(key) == digest(key_from_dict(json.loads(json.dumps(key_to_dict(key)))))
-    assert key.name == "t@v#task"
+    assert key.name == "t:k@v#task" and key.legacy_name == "t@v#task"
 
 
 def test_keystore_seals_by_digest_and_detects_tampering(tmp_path: Path) -> None:
@@ -398,3 +398,13 @@ def test_cwe_bench_relocates_methods_and_drops_tests(tmp_path: Path, ctx_for: Ct
         "FooIT.java"
     )
     assert not real_cves.is_test_file("src/main/java/Testing.java")
+
+
+def test_two_evaluations_of_one_target_seal_separately(tmp_path: Path) -> None:
+    store = KeyStore(tmp_path / "keys")
+    live = AnswerKey("js", "default", "juice-shop-challenges", "challenge", "c" * 40,
+                     (Case("a", True),))  # fmt: skip
+    source = AnswerKey("js", "default", "juice-shop-markers", "location", "c" * 40,
+                       (Case("b", True),))  # fmt: skip
+    a, b = store.seal(live), store.seal(source)
+    assert store.load(a, live.name) == live and store.load(b, source.legacy_name) == source

@@ -13,6 +13,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from itsuite.locks import file_lock
 from itsuite.models import Source
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
@@ -142,8 +143,10 @@ def fetch_archive(
 
 
 def fetch(source: Source, dest: Path, runner: Runner = subprocess.run) -> Path:
-    if source.kind == "git":
-        return fetch_git(source, dest, runner)
-    if source.kind == "archive":
+    """Fetch under a lock, so parallel runs of one target share one checkout safely."""
+    if source.kind not in ("git", "archive"):
+        raise FetchError(f"unknown source kind {source.kind!r}")
+    with file_lock(dest.parent / f".{dest.name}.lock"):
+        if source.kind == "git":
+            return fetch_git(source, dest, runner)
         return fetch_archive(source, dest)
-    raise FetchError(f"unknown source kind {source.kind!r}")
