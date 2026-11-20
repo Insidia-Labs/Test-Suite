@@ -27,6 +27,7 @@ REGISTRY: dict[str, KeyPlugin] = {
         real_cves.CWE_BENCH_JAVA,
         real_cves.OSSF_CVE,
         flags.XBOW,
+        flags.DVMCP,
     )
 }
 

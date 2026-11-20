@@ -21,6 +21,7 @@ from itsuite.adapter_check import tool_env
 from itsuite.docker_ops import DockerError
 from itsuite.fetch import fetch
 from itsuite.isolation import EDGE_NETWORK, IsolationError, gateway_name
+from itsuite.keys import flags
 from itsuite.keys import plugin as key_plugin
 from itsuite.keys.base import AnswerKey, KeyContext, KeyPlugin, KeyStore, Task
 from itsuite.keys.flags import new_flag
@@ -31,7 +32,7 @@ from itsuite.scoring import score_run
 from itsuite.view import build_view, save_path_map, view_salt
 
 WHITEBOX = frozenset({Mode.SAST, Mode.SECRETS, Mode.SCA, Mode.IAC, Mode.FIX, Mode.PR_REVIEW})
-LIVE = frozenset({Mode.DAST, Mode.CTF, Mode.EXPLOIT})
+LIVE = frozenset({Mode.DAST, Mode.CTF, Mode.EXPLOIT, Mode.AGENT_ATTACK})
 CONTAINER_ROOT = container.ROOT
 
 
@@ -99,6 +100,7 @@ class Prepared:
     source_dir: Path
     key: AnswerKey
     key_digest: str
+    rotation: Mapping[str, str] = field(default_factory=dict)
 
 
 def run_id(request: RunRequest) -> str:
@@ -162,18 +164,24 @@ def prepare(request: RunRequest, paths: SuitePaths, flag: str) -> Prepared:
     missing = [p for p in ev.params.get("requires_paths", ()) if not (src / str(p)).exists()]
     if missing:
         raise RunError(f"{target.id}: {missing} missing in {src}; see the manifest notes")
+    rotated = flags.rotation(plugin.rotates(bench_src)) if plugin.rotates else {}
+    params = {
+        **_resolved_params(ev, paths.root, flag),
+        **({"rotation": rotated} if rotated else {}),
+    }
     ctx = KeyContext(
         target.id,
         bench_src,
         ev.variant(request.variant),
         target.source.commit,
-        _resolved_params(ev, paths.root, flag),
+        params,
         task.task_id,
         task_src=None if src == bench_src else src,
     )
     key = plugin.build(ctx)
     digest = paths.keys.seal(key)
-    return Prepared(ev, request.tool.modes[request.mode], plugin, task, source, src, key, digest)
+    tool_mode = request.tool.modes[request.mode]
+    return Prepared(ev, tool_mode, plugin, task, source, src, key, digest, rotated)
 
 
 def _values(
@@ -253,7 +261,12 @@ def _start_live(
     name = "its-" + re.sub(r"[^a-z0-9]+", "-", run_dir.name.lower())[-40:].strip("-")
     variant = prep.evaluation.variant(request.variant)
     private = paths.private(run_dir.name)
-    return live.start(runtime, variant, project_dir, paths.root, private, name, build_args)
+    target = live.start(runtime, variant, project_dir, paths.root, private, name, build_args,
+                        rewrite=prep.rotation or None)  # fmt: skip
+    if len(target.exposes) > 1:
+        listed = live.endpoints(target, request.container)
+        (run_dir / "input" / "endpoints.json").write_text(json.dumps(listed, indent=1))
+    return target
 
 
 def _observe(prep: Prepared, target: live.LiveTarget | None) -> list[str] | None:
@@ -382,11 +395,8 @@ def _live_phase(
 
 
 def run(request: RunRequest, paths: SuitePaths, keep_view: bool = False) -> dict[str, Any]:
-    flag = (
-        new_flag()
-        if key_plugin(request.target.evaluation(request.mode).key).match == "flag"
-        else ""
-    )
+    plugin = key_plugin(request.target.evaluation(request.mode).key)
+    flag = new_flag() if plugin.match == "flag" and plugin.rotates is None else ""
     prep = prepare(request, paths, flag)
     run_dir = paths.results / run_id(request)
     for sub in ("out", "input"):

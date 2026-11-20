@@ -116,3 +116,25 @@ def test_run_setup(tmp_path: Path) -> None:
     assert "ready low" in (tmp_path / "in" / "setup.log").read_text()
     bad = write(tmp_path, "bad.sh", "exit 1\n")
     assert not live.run_setup(bad, "http://127.0.0.1:1/", "low", tmp_path / "in2")
+
+
+def test_rewritten_copy_replaces_flags_and_leaves_the_original(tmp_path: Path) -> None:
+    write(tmp_path, "src/server.py", 'FLAG = "DVMCP{old}"\n')
+    write(tmp_path, "src/logo.png", "")
+    (tmp_path / "src" / "logo.png").write_bytes(b"\x89PNG\x00\xff")
+    write(tmp_path, "src/.git/config", "DVMCP{old}")
+    copy = live.rewritten_copy(tmp_path / "src", tmp_path / "copy", {"DVMCP{old}": "DVMCP{new}"})
+    assert (copy / "server.py").read_text() == 'FLAG = "DVMCP{new}"\n'
+    assert (tmp_path / "src/server.py").read_text() == 'FLAG = "DVMCP{old}"\n'
+    assert (copy / "logo.png").read_bytes() == b"\x89PNG\x00\xff" and not (copy / ".git").exists()
+
+
+def test_endpoints_list_every_exposed_port() -> None:
+    from itsuite.docker_ops import ComposeProject
+
+    exposes = (Expose("mcp", 9001), Expose("mcp", 9002))
+    target = live.LiveTarget(ComposeProject("its-p", Path("c"), Path(".")), "u", "r", exposes,
+                             {exposes[0]: 40001, exposes[1]: 40002}, (), "/mcp")  # fmt: skip
+    assert live.endpoints(target, False) == {"mcp:9001": "http://127.0.0.1:40001/mcp",
+                                             "mcp:9002": "http://127.0.0.1:40002/mcp"}  # fmt: skip
+    assert live.endpoints(target, True)["mcp:9002"] == "http://its-gateway-mcp-9002:9002/mcp"

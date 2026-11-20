@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -12,7 +13,13 @@ import yaml
 
 from itsuite import apt_pin, docker_ops
 from itsuite.docker_ops import ComposeProject, DockerError, Runner
-from itsuite.isolation import IsolationError, auto_exposes, isolate, target_networks
+from itsuite.isolation import (
+    IsolationError,
+    auto_exposes,
+    gateway_name,
+    isolate,
+    target_networks,
+)
 from itsuite.models import Expose, Runtime, Variant
 from itsuite.runner import clean_env
 
@@ -101,7 +108,12 @@ def start(
     project_name: str,
     build_args: Mapping[str, str],
     runner: Runner = subprocess.run,
+    rewrite: Mapping[str, str] | None = None,
 ) -> LiveTarget:
+    """Start the target isolated. With ``rewrite``, it is built from a copy of its source
+    in which each key string (a published flag) is replaced by its value (a fresh one)."""
+    if rewrite:
+        project_dir = rewritten_copy(project_dir, run_dir / "build-src", rewrite)
     spec = load_spec(runtime, project_dir, suite_root)
     exposes = _exposes(runtime, spec)
     host_ports = {expose: docker_ops.free_port() for expose in exposes}
@@ -119,6 +131,34 @@ def start(
         raise
     networks = tuple(target_networks(isolated, project.name))
     return LiveTarget(project, base_url, root_url, exposes, host_ports, networks, runtime.base_path)
+
+
+def rewritten_copy(src: Path, dest: Path, rewrite: Mapping[str, str]) -> Path:
+    """Copy the source (without .git) and replace every key of ``rewrite`` in text files."""
+    shutil.rmtree(dest, ignore_errors=True)
+    shutil.copytree(src, dest, symlinks=True, ignore=shutil.ignore_patterns(".git"))
+    for path in dest.rglob("*"):
+        if not path.is_file() or path.is_symlink():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        new = text
+        for old, value in rewrite.items():
+            new = new.replace(old, value)
+        if new != text:
+            path.write_text(new, encoding="utf-8")
+    return dest
+
+
+def endpoints(target: LiveTarget, container: bool) -> dict[str, str]:
+    """Every exposed port's URL, for targets with more than one (one MCP server per port)."""
+    if container:
+        return {f"{e.service}:{e.port}": f"http://{gateway_name(e)}:{e.port}{target.base_path}"
+                for e in target.exposes}  # fmt: skip
+    return {f"{e.service}:{e.port}": f"http://127.0.0.1:{target.host_ports[e]}{target.base_path}"
+            for e in target.exposes}  # fmt: skip
 
 
 def stop(target: LiveTarget, runner: Runner = subprocess.run) -> None:

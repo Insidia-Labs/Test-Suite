@@ -98,6 +98,9 @@ class KeyPlugin:
     match: str
     build: Callable[[KeyContext], AnswerKey]
     tasks: Callable[[Path, Mapping[str, Any]], list[Task]] | None = None
+    # The target's own published flags. Each run replaces them with fresh random ones
+    # (in a copy of the build source), so a remembered flag scores nothing.
+    rotates: Callable[[Path], list[str]] | None = None
 
 
 def label(variant: Variant, upstream: bool) -> bool:

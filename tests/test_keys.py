@@ -408,3 +408,31 @@ def test_two_evaluations_of_one_target_seal_separately(tmp_path: Path) -> None:
                        (Case("b", True),))  # fmt: skip
     a, b = store.seal(live), store.seal(source)
     assert store.load(a, live.name) == live and store.load(b, source.legacy_name) == source
+
+
+def test_rotation_keeps_the_flag_format_and_is_fresh() -> None:
+    rotated = flags.rotation(["DVMCP{ch1_x}", "DVMCP{ch1_x}", "FLAG:plutonium-256"])
+    assert set(rotated) == {"DVMCP{ch1_x}", "FLAG:plutonium-256"}
+    assert (
+        rotated["DVMCP{ch1_x}"].startswith("DVMCP{") and rotated["DVMCP{ch1_x}"] != "DVMCP{ch1_x}"
+    )
+    assert rotated["FLAG:plutonium-256"].startswith("FLAG{")
+    assert flags.rotation(["DVMCP{a}"]) != flags.rotation(["DVMCP{a}"])
+
+
+def test_dvmcp_key_from_the_flags_table(tmp_path: Path, ctx_for: Ctx) -> None:
+    write(tmp_path, flags.DVMCP_FLAGS_FILE,
+          'FLAGS = {\n    1: "DVMCP{ch1_a}",\n    2: "DVMCP{ch2_b}",\n}\n')  # fmt: skip
+    originals = flags.dvmcp_originals(tmp_path)
+    assert originals == ["DVMCP{ch1_a}", "DVMCP{ch2_b}"]
+    rotated = flags.rotation(originals)
+    key = flags.build_dvmcp(ctx_for(rotation=rotated))
+    assert [(c.case_id, c.secret) for c in key.cases] == [
+        ("challenge1", rotated["DVMCP{ch1_a}"]),
+        ("challenge2", rotated["DVMCP{ch2_b}"]),
+    ]
+    with pytest.raises(KeyBuildError, match="rotate every flag"):
+        flags.build_dvmcp(ctx_for(rotation={}))
+    write(tmp_path, flags.DVMCP_FLAGS_FILE, "nothing here\n")
+    with pytest.raises(KeyBuildError, match="no FLAGS table"):
+        flags.dvmcp_originals(tmp_path)
