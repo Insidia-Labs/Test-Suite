@@ -87,6 +87,9 @@ class Runtime:
     build_args: Mapping[str, str] = field(default_factory=dict)
     apt_snapshot: str = ""  # e.g. 20261119T000000Z: Debian apt sources pinned to that date
     base_images: str = ""  # suite: path to a YAML map of image:tag -> digest
+    pip_constraints: str = ""  # suite: path to exact pins; every pip install is held to them
+    model: str = ""  # a catalog model the target needs; reached through one gateway
+    overlay: Mapping[str, str] = field(default_factory=dict)  # suite file -> path in the build copy
 
 
 @dataclass(frozen=True)
@@ -206,6 +209,22 @@ class ToolSpec:
     verified: bool = False
     notes: str = ""
     install: Install | None = None
+
+
+@dataclass(frozen=True)
+class ModelSpec:
+    """A model the suite serves for LLM-backed targets (vLLM, pinned revision)."""
+
+    id: str
+    name: str
+    license: str
+    repo: str
+    revision: str
+    served_name: str
+    server_package: str
+    server_args: tuple[str, ...] = ()
+    port: int = 8000
+    notes: str = ""
 
 
 @dataclass(frozen=True)

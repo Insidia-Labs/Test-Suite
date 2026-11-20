@@ -1,0 +1,6 @@
+# DVLA's base image. The pinned commit (2025-06-25) predates the trixie-based Python
+# images (August 2025), so its `python:3.9-slim` meant Debian bookworm; its Dockerfile
+# installs software-properties-common, which trixie dropped. Pinned to the
+# python:3.9-slim-bookworm index digest on 2026-11-20.
+images:
+  "python:3.9-slim": "sha256:a02e9c5406c416c504d6c9a1a306ff4080c3173f1008d192f953bd20382a2d5c"

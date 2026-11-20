@@ -234,11 +234,43 @@ def isolate(
     return {**top, "services": new_services, "networks": networks}
 
 
+MODEL_SERVICE = "its-model"
+
+
+def with_model_gateway(
+    isolated: Mapping[str, Any], host: str, port: int, served_name: str
+) -> dict[str, Any]:
+    """Give the target one way out: a gateway that forwards only to the model server.
+
+    Every target service gets ITS_MODEL_BASE (an OpenAI-compatible base URL) and
+    ITS_MODEL_NAME. The gateway joins the target's network and the edge network; the
+    target's own services stay internal, so the egress probe still has to fail.
+    """
+    spec = copy.deepcopy(dict(isolated))
+    services = dict(spec["services"])
+    targets = [n for n in services if not str(n).startswith("its-gateway-")]
+    env = {"ITS_MODEL_BASE": f"http://{MODEL_SERVICE}:8000/v1", "ITS_MODEL_NAME": served_name}
+    for name in targets:
+        service = dict(services[name])
+        service["environment"] = {**_env_dict(service.get("environment")), **env}
+        services[name] = service
+    network = _service_networks(services[targets[0]])[0] if targets else "default"
+    services[MODEL_SERVICE] = {
+        "image": GATEWAY_IMAGE,
+        "command": ["TCP-LISTEN:8000,fork,reuseaddr", f"TCP:{host}:{port}"],
+        "networks": [network, EDGE_NETWORK],
+        "restart": "unless-stopped",
+    }
+    spec["services"] = services
+    return spec
+
+
 def target_networks(isolated: Mapping[str, Any], project: str) -> list[str]:
     """Docker names of the networks the target's own services use, for the egress probe."""
     used: list[str] = []
     for name, service in (isolated.get("services") or {}).items():
-        if str(name).startswith("its-gateway-") or (service or {}).get("network_mode"):
+        helper = str(name).startswith("its-gateway-") or name == MODEL_SERVICE
+        if helper or (service or {}).get("network_mode"):
             continue
         used += [n for n in _service_networks(service or {}) if n not in used]
     configs = isolated.get("networks") or {}

@@ -436,3 +436,20 @@ def test_dvmcp_key_from_the_flags_table(tmp_path: Path, ctx_for: Ctx) -> None:
     write(tmp_path, flags.DVMCP_FLAGS_FILE, "nothing here\n")
     with pytest.raises(KeyBuildError, match="no FLAGS table"):
         flags.dvmcp_originals(tmp_path)
+
+
+def test_dvla_key_needs_both_secrets_rotated(tmp_path: Path, ctx_for: Ctx) -> None:
+    write(tmp_path, flags.DVLA_DB, "x = ('FLAG:plutonium-256', 'flux-capacitor-123')\n")
+    originals = flags.dvla_originals(tmp_path)
+    rotated = flags.rotation(originals)
+    key = flags.build_dvla(ctx_for(rotation=rotated))
+    assert [c.case_id for c in key.cases] == [
+        "other-users-transactions",
+        "password-via-sql-injection",
+    ]
+    assert all(c.secret.startswith("FLAG{") for c in key.cases)
+    with pytest.raises(KeyBuildError, match="rotate both"):
+        flags.build_dvla(ctx_for(rotation={}))
+    write(tmp_path, flags.DVLA_DB, "changed upstream\n")
+    with pytest.raises(KeyBuildError, match="no longer holds"):
+        flags.dvla_originals(tmp_path)

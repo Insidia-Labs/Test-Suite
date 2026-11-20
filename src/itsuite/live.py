@@ -19,6 +19,7 @@ from itsuite.isolation import (
     gateway_name,
     isolate,
     target_networks,
+    with_model_gateway,
 )
 from itsuite.models import Expose, Runtime, Variant
 from itsuite.runner import clean_env
@@ -71,13 +72,18 @@ def _check_egress(project: ComposeProject, spec: Mapping[str, object], runner: R
 
 
 def load_spec(runtime: Runtime, project_dir: Path, suite_root: Path) -> dict[str, Any]:
-    """The target's compose spec with its build pins (base images, apt snapshot) applied."""
+    """The target's compose spec with its build pins (base images, apt, pip) applied."""
     spec = yaml.safe_load(
         compose_file(runtime, project_dir, suite_root).read_text(encoding="utf-8")
     )
-    if runtime.apt_snapshot or runtime.base_images:
+    if runtime.apt_snapshot or runtime.base_images or runtime.pip_constraints:
+        pins = (
+            apt_pin.read_pins(suite_root / runtime.pip_constraints.removeprefix("suite:"))
+            if runtime.pip_constraints
+            else ()
+        )
         spec = apt_pin.with_build_pins(
-            spec, project_dir, runtime.apt_snapshot, _base_images(runtime, suite_root)
+            spec, project_dir, runtime.apt_snapshot, _base_images(runtime, suite_root), pins
         )
     return dict(spec)
 
@@ -109,15 +115,19 @@ def start(
     build_args: Mapping[str, str],
     runner: Runner = subprocess.run,
     rewrite: Mapping[str, str] | None = None,
+    model: tuple[str, int, str] | None = None,
 ) -> LiveTarget:
     """Start the target isolated. With ``rewrite``, it is built from a copy of its source
     in which each key string (a published flag) is replaced by its value (a fresh one)."""
-    if rewrite:
-        project_dir = rewritten_copy(project_dir, run_dir / "build-src", rewrite)
+    if rewrite or runtime.overlay:
+        project_dir = rewritten_copy(project_dir, run_dir / "build-src", rewrite or {})
+        _apply_overlay(runtime, suite_root, project_dir)
     spec = load_spec(runtime, project_dir, suite_root)
     exposes = _exposes(runtime, spec)
     host_ports = {expose: docker_ops.free_port() for expose in exposes}
     isolated = isolate(spec, host_ports, variant.env, build_args)
+    if model is not None:
+        isolated = with_model_gateway(isolated, *model)
     project = ComposeProject(project_name, _write_isolated(isolated, run_dir), project_dir)
     try:
         docker_ops.compose_up(project, runner)
@@ -131,6 +141,14 @@ def start(
         raise
     networks = tuple(target_networks(isolated, project.name))
     return LiveTarget(project, base_url, root_url, exposes, host_ports, networks, runtime.base_path)
+
+
+def _apply_overlay(runtime: Runtime, suite_root: Path, project_dir: Path) -> None:
+    """Add suite files to the build copy (e.g. an API front end for a UI-only target)."""
+    for source, dest in runtime.overlay.items():
+        target = project_dir / dest
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(suite_root / source.removeprefix("suite:"), target)
 
 
 def rewritten_copy(src: Path, dest: Path, rewrite: Mapping[str, str]) -> Path:

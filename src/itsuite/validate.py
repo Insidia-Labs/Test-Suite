@@ -36,6 +36,9 @@ def _target_problems(target: TargetSpec, root: Path) -> list[str]:
         problems.append(f"{target.id}: {runtime.compose} does not exist")
     if runtime and runtime.setup and not (root / runtime.setup).is_file():
         problems.append(f"{target.id}: setup script {runtime.setup} does not exist")
+    for pin_file in (runtime.base_images, runtime.pip_constraints) if runtime else ():
+        if pin_file and not (root / pin_file.removeprefix("suite:")).is_file():
+            problems.append(f"{target.id}: {pin_file} does not exist")
     return problems
 
 

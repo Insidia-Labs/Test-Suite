@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, TypeVar
 
@@ -20,6 +20,7 @@ from itsuite.models import (
     Integration,
     Level,
     Mode,
+    ModelSpec,
     OutputFormat,
     Prepare,
     Profile,
@@ -124,6 +125,9 @@ def parse_runtime(data: Mapping[str, Any] | None, ctx: str) -> Runtime | None:
         build_args=_str_map(data.get("build_args"), ctx),
         apt_snapshot=_snapshot(data.get("apt_snapshot"), ctx),
         base_images=str(data.get("base_images", "")),
+        pip_constraints=str(data.get("pip_constraints", "")),
+        model=str(data.get("model", "")),
+        overlay=_str_map(data.get("overlay"), ctx),
     )
 
 
@@ -294,6 +298,23 @@ class Catalog:
     targets: Mapping[str, TargetSpec]
     tools: Mapping[str, ToolSpec]
     profiles: Mapping[str, Profile]
+    models: Mapping[str, ModelSpec] = field(default_factory=dict)
+
+
+def parse_model(data: Mapping[str, Any], ctx: str) -> ModelSpec:
+    revision = str(_field(data, "revision", ctx))
+    if not SHA1_RE.match(revision):
+        raise CatalogError(f"{ctx}: revision must be a full 40-character commit")
+    package = str(_field(data, "server_package", ctx))
+    if "==" not in package:
+        raise CatalogError(f"{ctx}: server_package must be pinned (vllm==x.y.z)")
+    return ModelSpec(
+        id=str(_field(data, "id", ctx)), name=str(_field(data, "name", ctx)),
+        license=str(_field(data, "license", ctx)), repo=str(_field(data, "repo", ctx)),
+        revision=revision, served_name=str(_field(data, "served_name", ctx)),
+        server_package=package, server_args=_strings(data, "server_args"),
+        port=int(data.get("port", 8000)), notes=str(data.get("notes", "")),
+    )  # fmt: skip
 
 
 def _load_dir(folder: Path, parse: Callable[[Mapping[str, Any], str], E]) -> dict[str, E]:
@@ -315,4 +336,5 @@ def load_catalog(root: Path) -> Catalog:
         targets=_load_dir(root / "catalog" / "targets", parse_target),
         tools=_load_dir(root / "catalog" / "tools", parse_tool),
         profiles=_load_dir(root / "profiles", parse_profile),
+        models=_load_dir(root / "catalog" / "models", parse_model),
     )

@@ -86,3 +86,43 @@ def test_copy_from_images_are_pinned_but_stages_are_not() -> None:
         apt_pin.pin_copy_from("COPY --chown=1:1 --from=composer:latest /a /b", bases).count("@")
         == 1
     )
+
+
+PIP_DOCKERFILE = """FROM python:3.9-slim
+RUN apt-get update && apt-get install -y curl
+RUN pip install python-dotenv
+RUN pip3 install -r requirements.txt
+FROM nginx
+COPY --from=0 /app /app
+"""
+PINS = ("langchain==0.3.26", "python-dotenv==1.1.1")
+
+
+def test_pip_pins_hold_every_pip_install_in_the_stage() -> None:
+    out = apt_pin.pin_dockerfile(PIP_DOCKERFILE, TS, {}, PINS).splitlines()
+    assert out[0] == "FROM python:3.9-slim" and out[1].startswith(
+        "RUN if [ -f /etc/debian_version ]"
+    )
+    assert out[2] == (
+        "RUN printf '%s\\n' 'langchain==0.3.26' 'python-dotenv==1.1.1'"
+        " > /etc/itsuite-pip-constraints.txt"
+    )
+    assert out[3] == "ENV PIP_CONSTRAINT=/etc/itsuite-pip-constraints.txt"
+    assert out[4] == "RUN apt-get update && apt-get install -y curl"
+    nginx = out.index("FROM nginx")
+    assert not any("PIP_CONSTRAINT" in line for line in out[nginx:])  # no pip in that stage
+    assert apt_pin.pin_dockerfile(PIP_DOCKERFILE, "", {}, ()) == PIP_DOCKERFILE
+
+
+def test_pip_pins_must_be_exact_and_shell_safe(tmp_path: Path) -> None:
+    for bad in ("langchain~=0.3.25", "streamlit", "x==1'; touch /pwned; '"):
+        with pytest.raises(ValueError, match="exact"):
+            apt_pin.pip_step([bad])
+    with pytest.raises(ValueError, match="no pins"):
+        apt_pin.pip_step([])
+    path = write(
+        tmp_path,
+        "pins.txt",
+        "# resolved 2025-06-25\n\nLangChain==0.3.26\nuvicorn[standard]==0.34.3\n",
+    )
+    assert apt_pin.read_pins(path) == ("LangChain==0.3.26", "uvicorn[standard]==0.34.3")

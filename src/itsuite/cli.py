@@ -18,6 +18,7 @@ from itsuite import (
     adjudication,
     images,
     live,
+    model_server,
     profile_runner,
     scorecard,
     tools,
@@ -355,6 +356,28 @@ def cmd_rescore(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -
     return 0
 
 
+def cmd_model(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
+    """Install, download and serve the pinned model LLM-backed targets run on."""
+    if args.action == "status":
+        state = model_server.status(paths.cache)
+        print(json.dumps(state, indent=1) if state else "no model is being served")
+        return 0 if state else 1
+    if args.action == "stop":
+        print("stopped" if model_server.stop(paths.cache) else "nothing was running")
+        return 0
+    if not args.model or args.model not in catalog.models:
+        raise RunError(f"name a model: {', '.join(sorted(catalog.models))}")
+    spec = catalog.models[args.model]
+    if args.action in ("install", "serve"):
+        model_server.install(spec, paths.cache)
+        where = model_server.download(spec, paths.cache)
+        print(f"{spec.repo}@{spec.revision[:12]} in {where}")
+    if args.action == "serve":
+        state = model_server.serve(spec, paths.cache, model_server.bridge_ip())
+        print(f"serving {spec.served_name} at http://{state['host']}:{state['port']}/v1")
+    return 0
+
+
 def cmd_doctor(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
     print(f"itsuite {__version__} (frozen {FREEZE_DATE}), root {paths.root}")
     print(f"answer-key plugins: {', '.join(sorted(REGISTRY))}")
@@ -425,6 +448,9 @@ def build_parser() -> argparse.ArgumentParser:
     rs = sub.add_parser("rescore", help="score runs again (after new adjudications)")
     rs.add_argument("runs", nargs="*")
     rs.add_argument("--all", action="store_true")
+    md = sub.add_parser("model", help="serve the pinned model LLM-backed targets use (vLLM)")
+    md.add_argument("action", choices=["install", "serve", "status", "stop"])
+    md.add_argument("model", nargs="?")
     sc = sub.add_parser("scorecard", help="per-tool scorecard and comparison")
     sc.add_argument("--by", choices=scorecard.GROUPINGS, default="capability")
     sc.add_argument("--results")
@@ -451,6 +477,7 @@ COMMANDS = {
     "scorecard": cmd_scorecard,
     "adjudicate": cmd_adjudicate,
     "rescore": cmd_rescore,
+    "model": cmd_model,
 }
 
 

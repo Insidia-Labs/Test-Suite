@@ -138,3 +138,39 @@ def test_endpoints_list_every_exposed_port() -> None:
     assert live.endpoints(target, False) == {"mcp:9001": "http://127.0.0.1:40001/mcp",
                                              "mcp:9002": "http://127.0.0.1:40002/mcp"}  # fmt: skip
     assert live.endpoints(target, True)["mcp:9002"] == "http://its-gateway-mcp-9002:9002/mcp"
+
+
+def test_overlay_adds_suite_files_to_the_build_copy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write(tmp_path, "suite/targets/x/its_api.py", "print('api')\n")
+    write(
+        tmp_path,
+        "src/compose.yml",
+        yaml.safe_dump({"services": {"app": {"build": ".", "ports": ["8080"]}}}),
+    )
+    write(tmp_path, "src/app.py", "SECRET = 'S1'\n")
+    (tmp_path / "run").mkdir()
+    monkeypatch.setattr(docker_ops, "wait_http", lambda url: True)
+    runtime = Runtime("compose.yml", auto_expose=True,
+                      overlay={"suite:targets/x/its_api.py": "its_api.py"})  # fmt: skip
+    target = live.start(runtime, Variant("v"), tmp_path / "src", tmp_path / "suite", tmp_path / "run",
+                        "its-o", {}, Docker(), rewrite={"S1": "S2"},
+                        model=("172.17.0.1", 8000, "suite-model"))  # fmt: skip
+    copy = tmp_path / "run" / "build-src"
+    assert (copy / "its_api.py").read_text() == "print('api')\n"
+    assert (copy / "app.py").read_text() == "SECRET = 'S2'\n" and target.project.project_dir == copy
+    spec = yaml.safe_load((tmp_path / "run" / "compose.isolated.yml").read_text())
+    assert "its-model" in spec["services"]
+
+
+def test_load_spec_applies_pip_pins_from_the_suite(tmp_path: Path) -> None:
+    write(tmp_path, "suite/targets/x/pins.txt", "# pins\nstreamlit==1.46.0\n")
+    write(
+        tmp_path, "src/Dockerfile", "FROM python:3.9-slim\nRUN pip3 install -r requirements.txt\n"
+    )
+    write(tmp_path, "src/compose.yml", yaml.safe_dump({"services": {"app": {"build": "."}}}))
+    runtime = Runtime("compose.yml", pip_constraints="suite:targets/x/pins.txt")
+    spec = live.load_spec(runtime, tmp_path / "src", tmp_path / "suite")
+    inline = spec["services"]["app"]["build"]["dockerfile_inline"]
+    assert "'streamlit==1.46.0'" in inline and "ENV PIP_CONSTRAINT=" in inline

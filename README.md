@@ -73,6 +73,21 @@ uv run itsuite run --tool bandit --target owasp-benchmark-python --mode sast --c
 ZAP runs its own container, so it can't run sealed; its results are labelled
 unsealed.
 
+LLM-backed targets (Damn Vulnerable LLM Agent) talk to one pinned local model,
+served by vLLM on the host GPU, so every tool meets the same model. Install and
+start it once; it keeps running until stopped:
+
+```bash
+uv run itsuite model install qwen2.5-7b-instruct-awq   # pinned vLLM + the model at a fixed revision
+uv run itsuite model serve qwen2.5-7b-instruct-awq     # listens on Docker's bridge address only
+uv run itsuite model status
+uv run itsuite model stop
+```
+
+The pinned settings fit an 8 GB card (4-bit weights, a 4096-token context). A
+run against an LLM-backed target refuses to start when the model isn't being
+served.
+
 Run a profile (the same plan for every tool; samples use a fixed seed):
 
 ```bash
@@ -114,7 +129,7 @@ Generated from the catalog; `uv run itsuite list` is the live version.
 
 | Level | Target | Modes (integration) | Contamination |
 |---|---|---|---|
-| L0 | [Damn Vulnerable LLM Agent](https://github.com/ReversecLabs/damn-vulnerable-llm-agent) | agent-attack (planned) | medium |
+| L0 | [Damn Vulnerable LLM Agent](https://github.com/ReversecLabs/damn-vulnerable-llm-agent) | agent-attack (native) | medium |
 | L0 | [Damn Vulnerable GraphQL Application](https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application) | dast (planned) | medium |
 | L0 | [Damn Vulnerable Web Application](https://github.com/digininja/DVWA) | dast (native) | high |
 | L0 | [OWASP Juice Shop](https://owasp.org/www-project-juice-shop/) | dast (native), sast (native) | high |
@@ -123,7 +138,7 @@ Generated from the catalog; `uv run itsuite list` is the live version.
 | L1 | [CfnGoat](https://github.com/bridgecrewio/cfngoat) | iac (planned) | medium |
 | L1 | [CI/CD Goat](https://github.com/cider-security-research/cicd-goat) | ctf (planned), iac (planned) | medium |
 | L1 | [OWASP crAPI](https://owasp.org/www-project-crapi/) | dast (planned) | medium |
-| L1 | [Damn Vulnerable MCP Server](https://github.com/harishsg993010/damn-vulnerable-MCP-server) | agent-attack (planned), sast (planned) | medium |
+| L1 | [Damn Vulnerable MCP Server](https://github.com/harishsg993010/damn-vulnerable-MCP-server) | agent-attack (native), sast (planned) | medium |
 | L1 | [GitHub Actions Goat](https://github.com/step-security/github-actions-goat) | iac (planned) | low |
 | L1 | [InterCode-CTF](https://intercode-benchmark.github.io/) | ctf (bridge) | high |
 | L1 | [Kubernetes Goat](https://madhuakula.com/kubernetes-goat/) | iac (planned) | medium |
@@ -174,9 +189,16 @@ answer key and wait for adjudication.
 | Argus 1.0.0 (`f783775a`) | OWASP Benchmark Python, source | 4 TP, 9 FP; recall 0.01 (built-in sink rules only) |
 | ZAP 2.17.0 | VAmPI vulnerable / clean | 1 of 9 found (SQL injection); 0 FP on 6 controls |
 | Nuclei 3.11.1 | VAmPI, DVWA | 0 found; findings are headers, tech detection, DVWA's default login (unmatched) |
+| Nuclei 3.11.1 | Juice Shop, live | 4 of 100 challenges solved |
+| ZAP 2.17.0 | Juice Shop, live | 2 of 100 challenges solved |
+| Semgrep 1.186.0 | Juice Shop, source | 7 of 30 marked vulnerabilities found, 0 FP |
 | Argus 1.0.0 | VAmPI, DVWA | 0 found; 0 FP on controls |
-| Gitleaks, TruffleHog, Trivy, OSV-Scanner | WrongSecrets, PyGoat, TerraGoat | Adapter checks only: output parsed (no scored target yet) |
-| XBOW XBEN-001-24 | flag plumbing | Random flag injected and sealed; the target's own Dockerfile then failed to build |
+| Gitleaks 8.30.1 | CredData | 7,086 TP, 1,169 FP; precision 0.86, recall 0.45 |
+| TruffleHog 3.99.9 | CredData | 371 TP, 178 FP; precision 0.68, recall 0.02 (run with `--no-verification`: targets are offline) |
+| Semgrep 1.186.0 | CWE-Bench-Java, OSSF CVE (sampled tasks) | 0 found; 1 FP on an OSSF patched control |
+| Trivy, OSV-Scanner | PyGoat, TerraGoat | Adapter checks only: output parsed (no scored target yet) |
+| XBOW (all 104) | build check | Every benchmark builds with the pinned bases and Debian snapshot |
+| Harness self-test | Damn Vulnerable MCP Server | All 15 rotated flags found; none of the published flags left in the image |
 
 Argus finds nothing on the live apps because its web checks need a `{{payload}}`
 placeholder in a hand-written request, and the suite gives every tool only the

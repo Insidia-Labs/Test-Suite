@@ -166,6 +166,20 @@ def test_validate_live_needs_runtime(tmp_path: Path) -> None:
     assert any("has no sast" in p for p in problems)
 
 
+def test_validate_build_pin_files_must_exist(tmp_path: Path) -> None:
+    import yaml
+
+    evaluation = {"mode": "dast", "key": "dvwa-modules", "integration": "native"}
+    _mini_suite(tmp_path, evaluation)
+    runtime = {"compose": "compose.yml", "base_images": "suite:targets/demo/bases.yaml",
+               "pip_constraints": "suite:targets/demo/pins.txt"}  # fmt: skip
+    demo = _target(evaluations=[evaluation], runtime=runtime)
+    write(tmp_path, "catalog/targets/demo.yaml", yaml.safe_dump(demo))
+    problems = validate(load_catalog(tmp_path), tmp_path)
+    assert any("bases.yaml does not exist" in p for p in problems)
+    assert any("pins.txt does not exist" in p for p in problems)
+
+
 def test_file_name_must_match_id(tmp_path: Path) -> None:
     import yaml
 

@@ -28,6 +28,7 @@ REGISTRY: dict[str, KeyPlugin] = {
         real_cves.OSSF_CVE,
         flags.XBOW,
         flags.DVMCP,
+        flags.DVLA,
     )
 }
 

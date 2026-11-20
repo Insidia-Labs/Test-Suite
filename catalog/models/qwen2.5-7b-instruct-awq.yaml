@@ -1,0 +1,21 @@
+id: qwen2.5-7b-instruct-awq
+name: Qwen2.5 7B Instruct (AWQ, 4-bit)
+license: Apache-2.0
+repo: Qwen/Qwen2.5-7B-Instruct-AWQ
+revision: b25037543e9394b818fdfca67ab2a00ecc7dd641
+served_name: suite-model
+server_package: vllm==0.34.0
+server_args: [--max-model-len, "4096", --max-num-seqs, "4", --max-num-batched-tokens, "2048",
+              --kv-cache-memory, "402653184", --gpu-memory-utilization, "0.85",
+              --attention-backend, FLASH_ATTN, --enforce-eager,
+              --seed, "0"]
+port: 8000
+notes: >-
+  The model LLM-backed targets (Damn Vulnerable LLM Agent, AI Goat) run on, so their
+  behaviour is the same for every tool. Served by vLLM on the host GPU (an RTX 5060 Ti
+  with 8 GB needs the 4-bit build, eager mode and a 4096-token context, since
+  compile-time autotuning ran out of memory). The KV cache is a fixed 384 MiB (about 6.8k
+  tokens) rather than sized from free memory, so every run gets the same cache. FlashAttention is chosen because its kernels
+  ship prebuilt; FlashInfer, which vLLM picks for an fp8 KV cache, compiles kernels at
+  startup and needs a CUDA toolkit. Targets reach the model through one gateway container
+  and have no other way out.

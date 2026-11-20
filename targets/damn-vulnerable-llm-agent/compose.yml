@@ -1,0 +1,10 @@
+# DVLA built from the pinned, flag-rotated copy, with the suite's API front end
+# (its_api.py, added to the build copy) instead of the Streamlit UI.
+services:
+  dvla:
+    build: .
+    entrypoint: ["python", "/app/its_api.py"]
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8080/health"]
+      interval: 5s
+      retries: 30

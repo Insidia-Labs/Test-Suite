@@ -101,6 +101,14 @@ uv run itsuite check-adapter --tool mytool --mode sast --source /path/to/code
    budgets. It passes them in and reports what the tool says it spent.
 8. **Flag targets** (`output: flags`): print the flag, or write it anywhere in
    `{out_dir}`. The run counts as solved when the exact sealed flag appears.
+9. **Agent targets** (`agent-attack`): `{target_url}` is where the agent answers.
+   A target with several endpoints (Damn Vulnerable MCP Server runs one MCP server
+   per challenge) lists every one in `{input_dir}/endpoints.json`, as
+   `{"service:port": "url"}`. An LLM app with no API of its own (Damn Vulnerable LLM
+   Agent) is served at an OpenAI-compatible `POST {target_url}/chat/completions`.
+   It keeps no state between requests, so send the whole conversation in `messages`
+   each time. Each reply also carries `its_steps`, the agent's tool calls and their
+   outputs; scoring ignores them and looks only for the target's secrets.
 
 ## Benchmarks with their own runner (`bridge`)
 

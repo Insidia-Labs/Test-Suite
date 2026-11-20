@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from itsuite import container, images, live
+from itsuite import container, images, live, model_server
 from itsuite import prepare as prepare_step
 from itsuite.adapter_check import tool_env
 from itsuite.docker_ops import DockerError
@@ -26,7 +26,16 @@ from itsuite.keys import plugin as key_plugin
 from itsuite.keys.base import AnswerKey, KeyContext, KeyPlugin, KeyStore, Task
 from itsuite.keys.flags import new_flag
 from itsuite.keys.juice_shop import fetch_solved
-from itsuite.models import Evaluation, Integration, Mode, Source, TargetSpec, ToolMode, ToolSpec
+from itsuite.models import (
+    Evaluation,
+    Integration,
+    Mode,
+    Runtime,
+    Source,
+    TargetSpec,
+    ToolMode,
+    ToolSpec,
+)
 from itsuite.runner import ExecResult, execute, final_status, render_command
 from itsuite.scoring import score_run
 from itsuite.view import build_view, save_path_map, view_salt
@@ -250,6 +259,18 @@ def _write_task_prompt(prep: Prepared, input_dir: Path) -> None:
         (input_dir / "task.md").write_text(prep.task.prompt + "\n", encoding="utf-8")
 
 
+def _model(runtime: Runtime, paths: SuitePaths) -> tuple[str, int, str] | None:
+    """Where the target's model is served, or a clear error if it isn't running."""
+    if not runtime.model:
+        return None
+    state = model_server.status(paths.cache)
+    if state is None or state.get("model") != runtime.model:
+        raise DockerError(
+            f"model {runtime.model} isn't being served: itsuite model serve {runtime.model}"
+        )
+    return str(state["host"]), int(state["port"]), str(state["served_name"])
+
+
 def _start_live(
     request: RunRequest, prep: Prepared, run_dir: Path, paths: SuitePaths, flag: str
 ) -> live.LiveTarget | None:
@@ -262,7 +283,7 @@ def _start_live(
     variant = prep.evaluation.variant(request.variant)
     private = paths.private(run_dir.name)
     target = live.start(runtime, variant, project_dir, paths.root, private, name, build_args,
-                        rewrite=prep.rotation or None)  # fmt: skip
+                        rewrite=prep.rotation or None, model=_model(runtime, paths))  # fmt: skip
     if len(target.exposes) > 1:
         listed = live.endpoints(target, request.container)
         (run_dir / "input" / "endpoints.json").write_text(json.dumps(listed, indent=1))

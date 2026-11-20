@@ -1,4 +1,4 @@
-"""Pin target builds so old images keep building: base images and Debian packages.
+"""Pin target builds so old images keep building: base images, Debian and pip packages.
 
 Many targets (XBOW above all) build from Debian images and run ``apt-get install``
 against the live mirrors. Debian later moves or prunes those versions (for example
@@ -12,13 +12,19 @@ digest they had on the same date, so installed packages never outrun the snapsho
 Only base images and package sources change, never the target's code. Ubuntu images
 keep their sources: their archive keeps old versions, and its snapshot service needs
 HTTPS certificates base images may lack.
+
+Python targets whose requirements aren't pinned (``langchain~=0.3``) resolve
+differently every month, and may stop resolving at all. With pip pins (a suite file
+of exact ``name==version`` lines), each stage that runs ``pip install`` gets a
+constraints file and ``PIP_CONSTRAINT`` right after ``FROM``, so every install in it
+is held to those versions. The target's requirements file is left alone.
 """
 
 from __future__ import annotations
 
 import copy
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +32,9 @@ SNAPSHOT_RE = re.compile(r"^\d{8}T\d{6}Z$")
 _FROM = re.compile(r"^\s*FROM\s", re.IGNORECASE)
 _FROM_IMAGE = re.compile(r"^(\s*FROM\s+(?:--platform=\S+\s+)?)(\S+)(.*)$", re.IGNORECASE)
 _USES_APT = re.compile(r"\bapt(-get)?\s+(update|install)\b")
+_USES_PIP = re.compile(r"\bpip3?\s+install\b")
+_PIN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*(\[[A-Za-z0-9,._-]+\])?==[A-Za-z0-9.+!_-]+$")
+PIP_CONSTRAINTS = "/etc/itsuite-pip-constraints.txt"
 
 
 def snapshot_step(timestamp: str) -> str:
@@ -54,6 +63,26 @@ def snapshot_step(timestamp: str) -> str:
     return f"RUN {script}"
 
 
+def read_pins(path: Path) -> tuple[str, ...]:
+    """The pins in a constraints file, without comments and blank lines."""
+    lines = (line.strip() for line in path.read_text(encoding="utf-8").splitlines())
+    return tuple(line for line in lines if line and not line.startswith("#"))
+
+
+def pip_step(pins: Sequence[str]) -> list[str]:
+    """Two lines that hold every later ``pip install`` in the stage to these pins."""
+    if not pins:
+        raise ValueError("the pip constraints file has no pins")
+    bad = [pin for pin in pins if not _PIN.match(pin)]
+    if bad:
+        raise ValueError(f"pip pins must be exact (name==version): {bad[:3]}")
+    quoted = " ".join(f"'{pin}'" for pin in pins)  # the pattern above allows no quotes
+    return [
+        f"RUN printf '%s\\n' {quoted} > {PIP_CONSTRAINTS}",
+        f"ENV PIP_CONSTRAINT={PIP_CONSTRAINTS}",
+    ]
+
+
 def pin_from(line: str, bases: Mapping[str, str]) -> str:
     """FROM image:tag -> FROM image:tag@digest when the image is in the pinned list."""
     match = _FROM_IMAGE.match(line)
@@ -76,9 +105,15 @@ def pin_copy_from(line: str, bases: Mapping[str, str]) -> str:
     return f"{match.group(1)}{match.group(2)}@{digest}{match.group(3)}" if digest else line
 
 
-def pin_dockerfile(text: str, timestamp: str, bases: Mapping[str, str] | None = None) -> str:
-    """Pin each FROM to its digest and, when ``timestamp`` is set, insert the apt
-    snapshot step after every FROM whose stage uses apt."""
+def pin_dockerfile(
+    text: str,
+    timestamp: str,
+    bases: Mapping[str, str] | None = None,
+    pip_pins: Sequence[str] = (),
+) -> str:
+    """Pin each FROM to its digest and insert, after every FROM, the apt snapshot step
+    (when ``timestamp`` is set and the stage uses apt) and the pip pins (when given and
+    the stage runs pip)."""
     lines = [
         pin_from(line, bases or {}) if _FROM.match(line) else pin_copy_from(line, bases or {})
         for line in text.splitlines()
@@ -86,14 +121,20 @@ def pin_dockerfile(text: str, timestamp: str, bases: Mapping[str, str] | None = 
     starts = [i for i, line in enumerate(lines) if _FROM.match(line)]
     if not starts:
         return text
-    step = snapshot_step(timestamp) if timestamp else ""
+    apt = [snapshot_step(timestamp)] if timestamp else []
+    pip = pip_step(pip_pins) if pip_pins else []
     out: list[str] = lines[: starts[0]]
     for n, start in enumerate(starts):
         end = starts[n + 1] if n + 1 < len(starts) else len(lines)
         stage = lines[start:end]
-        uses_apt = bool(step) and any(_USES_APT.search(line) for line in stage)
-        out += [stage[0], step, *stage[1:]] if uses_apt else stage
+        out += [stage[0], *_stage_steps(stage, apt, pip), *stage[1:]]
     return "\n".join(out) + ("\n" if text.endswith("\n") else "")
+
+
+def _stage_steps(stage: list[str], apt: list[str], pip: list[str]) -> list[str]:
+    uses_apt = any(_USES_APT.search(line) for line in stage)
+    uses_pip = any(_USES_PIP.search(line) for line in stage)
+    return (apt if uses_apt else []) + (pip if uses_pip else [])
 
 
 def _dockerfile_path(build: Any, project_dir: Path) -> Path | None:
@@ -110,8 +151,10 @@ def with_build_pins(
     project_dir: Path,
     timestamp: str,
     bases: Mapping[str, str] | None = None,
+    pip_pins: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """A new compose spec whose builds use pinned base images and dated apt sources."""
+    """A new compose spec whose builds use pinned base images, dated apt sources and,
+    when given, exact pip pins."""
     new = copy.deepcopy(dict(spec))
     for service in (new.get("services") or {}).values():
         build = (service or {}).get("build")
@@ -119,7 +162,7 @@ def with_build_pins(
         if path is None or not path.is_file():
             continue
         original = path.read_text(encoding="utf-8")
-        pinned = pin_dockerfile(original, timestamp, bases)
+        pinned = pin_dockerfile(original, timestamp, bases, pip_pins)
         if pinned == original:
             continue
         spec_build: dict[str, Any] = (
