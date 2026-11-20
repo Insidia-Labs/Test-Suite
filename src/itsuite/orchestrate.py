@@ -302,7 +302,7 @@ def _container_target(target: live.LiveTarget | None) -> tuple[str, str]:
         return "bridge", ""
     first = target.exposes[0]
     network = f"{target.project.name}_{EDGE_NETWORK}"
-    return network, f"http://{gateway_name(first)}:{first.port}{target.base_path}"
+    return network, f"{target.scheme}://{gateway_name(first)}:{first.port}{target.base_path}"
 
 
 def _execute_tool(

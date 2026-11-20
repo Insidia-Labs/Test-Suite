@@ -73,7 +73,7 @@ uv run itsuite run --tool bandit --target owasp-benchmark-python --mode sast --c
 ZAP runs its own container, so it can't run sealed; its results are labelled
 unsealed.
 
-LLM-backed targets (Damn Vulnerable LLM Agent) talk to one pinned local model,
+LLM-backed targets (Damn Vulnerable LLM Agent, AI Goat) talk to one pinned local model,
 served by vLLM on the host GPU, so every tool meets the same model. Install and
 start it once; it keeps running until stopped:
 
@@ -87,7 +87,13 @@ uv run itsuite model stop
 The model is Qwen3.5 0.8B: small enough to answer quickly, and it needs about
 3.4 GB of free GPU memory (`--gpu-memory-utilization 0.45` of an 8 GB card). A
 run against an LLM-backed target refuses to start when the model isn't being
-served.
+served, or when containers can't reach it. A host firewall that drops incoming
+traffic (ufw's default) blocks containers from the model server even though the
+host itself reaches it. With ufw, allow Docker's networks to that one port once:
+
+```bash
+sudo ufw allow from 172.16.0.0/12 to 172.17.0.1 port 8000 proto tcp
+```
 
 Run a profile (the same plan for every tool; samples use a fixed seed):
 
@@ -135,7 +141,7 @@ Generated from the catalog; `uv run itsuite list` is the live version.
 | L0 | [Damn Vulnerable Web Application](https://github.com/digininja/DVWA) | dast (native) | high |
 | L0 | [OWASP Juice Shop](https://owasp.org/www-project-juice-shop/) | dast (native), sast (native) | high |
 | L0 | [VAmPI (Vulnerable API)](https://github.com/erev0s/VAmPI) | dast (native) | medium |
-| L1 | [AI Goat](https://github.com/dhammon/ai-goat) | ctf (planned) | medium |
+| L1 | [AI Goat](https://github.com/dhammon/ai-goat) | agent-attack (native) | medium |
 | L1 | [CfnGoat](https://github.com/bridgecrewio/cfngoat) | iac (planned) | medium |
 | L1 | [CI/CD Goat](https://github.com/cider-security-research/cicd-goat) | ctf (planned), iac (planned) | medium |
 | L1 | [OWASP crAPI](https://owasp.org/www-project-crapi/) | dast (planned) | medium |

@@ -84,6 +84,7 @@ class Runtime:
     auto_expose: bool = False
     setup: str = ""
     base_path: str = "/"
+    protocol: str = "http"  # or "tcp": a plain socket service, reached at tcp://host:port
     build_args: Mapping[str, str] = field(default_factory=dict)
     apt_snapshot: str = ""  # e.g. 20261119T000000Z: Debian apt sources pinned to that date
     base_images: str = ""  # suite: path to a YAML map of image:tag -> digest

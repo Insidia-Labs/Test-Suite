@@ -29,6 +29,7 @@ REGISTRY: dict[str, KeyPlugin] = {
         flags.XBOW,
         flags.DVMCP,
         flags.DVLA,
+        flags.AI_GOAT,
     )
 }
 

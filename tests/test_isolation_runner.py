@@ -274,3 +274,35 @@ def test_timeout_stops_the_whole_process_group(tmp_path: Path) -> None:
 
     time.sleep(3.5)
     assert not marker.exists()  # the background child was killed with its group
+
+
+def test_wait_tcp_needs_a_greeting() -> None:
+    import socket
+    import threading
+
+    with pytest.raises(ValueError):
+        docker_ops.wait_tcp("example.com", 80)
+
+    def serve(server: socket.socket, greet: bool) -> None:
+        conn, _ = server.accept()
+        with conn:
+            if greet:
+                conn.sendall(b" [bot] hi\n")
+
+    for greet in (True, False):  # a gateway with nothing behind it accepts, then says nothing
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            server.bind(("127.0.0.1", 0))
+            server.listen(1)
+            threading.Thread(target=serve, args=(server, greet), daemon=True).start()
+            port = server.getsockname()[1]
+            assert docker_ops.wait_tcp("127.0.0.1", port, 0.5, 0.1) is greet
+
+
+def test_model_probe_runs_on_the_edge_network() -> None:
+    runner = FakeRunner([0, 28])
+    assert docker_ops.model_reachable("its-p_its-edge", "172.17.0.1", 8000, runner)
+    assert not docker_ops.model_reachable("its-p_its-edge", "172.17.0.1", 8000, runner)
+    assert runner.calls[0][:5] == ["docker", "run", "--rm", "--network", "its-p_its-edge"]
+    assert runner.calls[0][-1] == "http://172.17.0.1:8000/v1/models"
+    with pytest.raises(docker_ops.DockerError, match="could not run"):
+        docker_ops.model_reachable("its-p_its-edge", "172.17.0.1", 8000, FakeRunner([125]))

@@ -116,12 +116,16 @@ def parse_runtime(data: Mapping[str, Any] | None, ctx: str) -> Runtime | None:
             Expose(str(_field(e, "service", ctx)), int(_field(e, "port", ctx))) for e in expose_raw
         )
     )
+    protocol = str(data.get("protocol", "http"))
+    if protocol not in ("http", "tcp"):
+        raise CatalogError(f"{ctx}: protocol must be http or tcp, not {protocol!r}")
     return Runtime(
         compose=str(_field(data, "compose", ctx)),
         expose=exposes,
         auto_expose=auto,
         setup=str(data.get("setup", "")),
-        base_path=str(data.get("base_path", "/")),
+        base_path="" if protocol == "tcp" else str(data.get("base_path", "/")),
+        protocol=protocol,
         build_args=_str_map(data.get("build_args"), ctx),
         apt_snapshot=_snapshot(data.get("apt_snapshot"), ctx),
         base_images=str(data.get("base_images", "")),

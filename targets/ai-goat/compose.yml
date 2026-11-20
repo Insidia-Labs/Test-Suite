@@ -1,0 +1,27 @@
+# AI Goat's two challenges as its docker-compose.yml runs them: the same image,
+# entrypoints and mounted files. The suite changes three things:
+# - its/llama_cpp.py is mounted next to core.py, so the challenges use the suite's
+#   pinned model instead of loading the 13B Vicuna file;
+# - the image is built with requests and validators already installed, pinned
+#   (its/Dockerfile);
+# - the CTFd container is left out, since runs are scored by their flags.
+# The flags in app.py and entrypoint.sh are replaced with fresh ones each run.
+services:
+  challenge1:
+    build: {context: ./its}
+    entrypoint: /usr/bin/bash /challenge/entrypoint.sh
+    ports: ["9001:9001"]
+    volumes:
+      - ./app/challenges/1/entrypoint.sh:/challenge/entrypoint.sh
+      - ./app/challenges/1/app.py:/challenge/app.py
+      - ./app/challenges/core.py:/challenge/core.py
+      - ./its/llama_cpp.py:/challenge/llama_cpp.py
+  challenge2:
+    build: {context: ./its}
+    entrypoint: /usr/bin/bash /challenge/entrypoint.sh
+    ports: ["9002:9002"]
+    volumes:
+      - ./app/challenges/2/entrypoint.sh:/challenge/entrypoint.sh
+      - ./app/challenges/2/app.py:/challenge/app.py
+      - ./app/challenges/core.py:/challenge/core.py
+      - ./its/llama_cpp.py:/challenge/llama_cpp.py

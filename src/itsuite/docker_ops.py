@@ -86,6 +86,18 @@ def egress_open(network: str, runner: Runner = subprocess.run) -> bool:
     return False
 
 
+def model_reachable(network: str, host: str, port: int, runner: Runner = subprocess.run) -> bool:
+    """True if a container on the network can reach the model server on the host. A host
+    firewall that drops incoming traffic (ufw's default) blocks this even though the
+    host itself can reach the server."""
+    argv = ["docker", "run", "--rm", "--network", network, PROBE_IMAGE,
+            "-s", "-o", "/dev/null", "-m", "10", f"http://{host}:{port}/v1/models"]  # fmt: skip
+    code = _run(argv, runner, 120).returncode
+    if code in _PROBE_FAILED:
+        raise DockerError(f"model probe could not run on {network} (docker exit {code})")
+    return code == 0
+
+
 _PORT_LOCK = threading.Lock()
 _HANDED_OUT: set[int] = set()
 
@@ -110,6 +122,24 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 _OPENER = urllib.request.build_opener(_NoRedirect)
+
+
+def wait_tcp(host: str, port: int, timeout: float = 300.0, interval: float = 2.0) -> bool:
+    """Wait until a plain socket service greets a new connection with at least one byte.
+    Connecting alone proves nothing: the gateway accepts even with nothing behind it."""
+    if host != "127.0.0.1":
+        raise ValueError("readiness checks only go to the local gateway")
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=5) as conn:
+                conn.settimeout(max(0.1, min(5.0, deadline - time.monotonic())))
+                if conn.recv(1):
+                    return True
+        except OSError:
+            pass
+        time.sleep(interval)
+    return False
 
 
 def wait_http(url: str, timeout: float = 300.0, interval: float = 2.0) -> bool:

@@ -14,6 +14,7 @@ import yaml
 from itsuite import apt_pin, docker_ops
 from itsuite.docker_ops import ComposeProject, DockerError, Runner
 from itsuite.isolation import (
+    EDGE_NETWORK,
     IsolationError,
     auto_exposes,
     gateway_name,
@@ -36,6 +37,7 @@ class LiveTarget:
     host_ports: Mapping[Expose, int]
     networks: tuple[str, ...]
     base_path: str
+    scheme: str = "http"
 
 
 def compose_file(runtime: Runtime, project_dir: Path, suite_root: Path) -> Path:
@@ -69,6 +71,18 @@ def _check_egress(project: ComposeProject, spec: Mapping[str, object], runner: R
     for network in target_networks(spec, project.name):
         if docker_ops.egress_open(network, runner):
             raise IsolationError(f"network {network} can reach the internet; stopping the run")
+
+
+def _check_model(project: ComposeProject, host: str, port: int, runner: Runner) -> None:
+    """The target's only way out must actually reach the model, or every request it makes
+    hangs until the tool's time runs out."""
+    network = f"{project.name}_{EDGE_NETWORK}"
+    if not docker_ops.model_reachable(network, host, port, runner):
+        raise DockerError(
+            f"containers can't reach the model server at {host}:{port}: the host firewall is "
+            f"probably dropping it. With ufw: sudo ufw allow from 172.16.0.0/12 to {host} "
+            f"port {port} proto tcp"
+        )
 
 
 def load_spec(runtime: Runtime, project_dir: Path, suite_root: Path) -> dict[str, Any]:
@@ -132,15 +146,31 @@ def start(
     try:
         docker_ops.compose_up(project, runner)
         _check_egress(project, isolated, runner)
-        root_url = f"http://127.0.0.1:{host_ports[exposes[0]]}"
-        base_url = root_url + runtime.base_path
-        if not docker_ops.wait_http(base_url):
-            raise DockerError(f"{base_url} never answered")
+        if model is not None:
+            _check_model(project, model[0], model[1], runner)
+        root_url, base_url = _wait_ready(runtime, host_ports[exposes[0]])
     except (DockerError, IsolationError):
         docker_ops.compose_down(project, runner)
         raise
     networks = tuple(target_networks(isolated, project.name))
-    return LiveTarget(project, base_url, root_url, exposes, host_ports, networks, runtime.base_path)
+    path = "" if runtime.protocol == "tcp" else runtime.base_path  # tcp:// URLs have no path
+    return LiveTarget(project, base_url, root_url, exposes, host_ports, networks, path,
+                      runtime.protocol)  # fmt: skip
+
+
+def _wait_ready(runtime: Runtime, port: int) -> tuple[str, str]:
+    """(root URL, base URL) once the target answers: any HTTP status, or for a plain
+    socket service, a greeting."""
+    if runtime.protocol == "tcp":
+        url = f"tcp://127.0.0.1:{port}"
+        if not docker_ops.wait_tcp("127.0.0.1", port):
+            raise DockerError(f"{url} never greeted")
+        return url, url
+    root_url = f"http://127.0.0.1:{port}"
+    base_url = root_url + runtime.base_path
+    if not docker_ops.wait_http(base_url):
+        raise DockerError(f"{base_url} never answered")
+    return root_url, base_url
 
 
 def _apply_overlay(runtime: Runtime, suite_root: Path, project_dir: Path) -> None:
@@ -172,10 +202,11 @@ def rewritten_copy(src: Path, dest: Path, rewrite: Mapping[str, str]) -> Path:
 
 def endpoints(target: LiveTarget, container: bool) -> dict[str, str]:
     """Every exposed port's URL, for targets with more than one (one MCP server per port)."""
+    scheme, path = target.scheme, target.base_path
     if container:
-        return {f"{e.service}:{e.port}": f"http://{gateway_name(e)}:{e.port}{target.base_path}"
+        return {f"{e.service}:{e.port}": f"{scheme}://{gateway_name(e)}:{e.port}{path}"
                 for e in target.exposes}  # fmt: skip
-    return {f"{e.service}:{e.port}": f"http://127.0.0.1:{target.host_ports[e]}{target.base_path}"
+    return {f"{e.service}:{e.port}": f"{scheme}://127.0.0.1:{target.host_ports[e]}{path}"
             for e in target.exposes}  # fmt: skip
 
 

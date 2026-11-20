@@ -32,7 +32,7 @@ the run before anything starts.
 
 | Placeholder | Meaning |
 |---|---|
-| `{target_url}` | Live target base URL (host mode: `http://127.0.0.1:<port>/` via the gateway) |
+| `{target_url}` | Live target base URL (host mode: `http://127.0.0.1:<port>/` via the gateway; `tcp://127.0.0.1:<port>` for plain socket targets) |
 | `{source_dir}` | The view: the target's source with answer files and markers removed. Empty for black-box modes. |
 | `{out_dir}` | Where the tool writes its output |
 | `{input_dir}` | Read-only inputs: `auth.json` from the target's setup, `task.md` for task targets |
@@ -108,7 +108,9 @@ uv run itsuite check-adapter --tool mytool --mode sast --source /path/to/code
    Agent) is served at an OpenAI-compatible `POST {target_url}/chat/completions`.
    It keeps no state between requests, so send the whole conversation in `messages`
    each time. Each reply also carries `its_steps`, the agent's tool calls and their
-   outputs; scoring ignores them and looks only for the target's secrets.
+   outputs; scoring ignores them and looks only for the target's secrets. AI Goat's
+   bots are plain TCP chat sockets (`tcp://host:port`, as with netcat): the bot sends
+   a greeting and a ` > ` prompt, you send one line, and it replies.
 
 ## Benchmarks with their own runner (`bridge`)
 

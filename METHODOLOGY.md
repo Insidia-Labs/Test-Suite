@@ -204,7 +204,9 @@ scores well only there may be remembering answers rather than finding bugs.
 Some targets are an LLM application, so how easy they are depends on the model
 behind them. Every tool meets the same model: a pinned build
 (`catalog/models/`, a Hugging Face repo at a full revision) served by a pinned
-vLLM on the host, at temperature 0 with a fixed seed and fixed server settings.
+vLLM on the host with a fixed seed and fixed server settings. Each target keeps its
+own sampling settings (DVLA uses temperature 0, AI Goat 0.9, so AI Goat's replies
+vary between runs and should be run with `--repeat`).
 The model runs offline (no Hub access, no usage reporting) and listens only on
 Docker's bridge address. Targets reach it through one gateway container,
 `its-model`, on their internal network; it is their only way out, and the egress
@@ -215,7 +217,11 @@ only has a web UI, the suite adds a small API front end (for DVLA,
 `targets/damn-vulnerable-llm-agent/its_api.py`) that builds the same agent with
 the same prompts and tools, so tools that speak HTTP can attack it. The front
 end returns the agent's tool calls with each reply; scoring only looks for the
-target's secrets, which are rotated per run like other flags.
+target's secrets, which are rotated per run like other flags. Targets that load a
+model inside their own process (AI Goat runs a 13B Vicuna file through
+llama-cpp-python) get a stand-in module with the same interface instead
+(`targets/ai-goat/llama_cpp.py`). It sends the target's own prompt, unchanged, to
+the suite model as a plain completion.
 
 ## 2. Metrics
 
@@ -260,7 +266,7 @@ target's secrets, which are rotated per run like other flags.
   for retired releases), so they keep building as mirrors change. VAmPI, DVWA and
   Juice Shop don't pin their builds yet; when one stops building, the run is
   recorded as `target-error` and not scored.
-- LLM-backed targets (Damn Vulnerable LLM Agent) run on one pinned local model
+- LLM-backed targets (Damn Vulnerable LLM Agent, AI Goat) run on one pinned local model
   (see 1.11). Their results hold for that model and settings only: a different
   model makes the same target easier or harder. The pinned model is small (Qwen3.5
   0.8B, chosen for speed on an 8 GB card). On DVLA it calls the tools correctly but

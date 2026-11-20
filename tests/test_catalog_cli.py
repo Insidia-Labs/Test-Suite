@@ -180,6 +180,16 @@ def test_validate_build_pin_files_must_exist(tmp_path: Path) -> None:
     assert any("pins.txt does not exist" in p for p in problems)
 
 
+def test_runtime_protocol_is_http_or_tcp() -> None:
+    from itsuite.catalog import parse_runtime
+
+    assert parse_runtime({"compose": "c.yml"}, "x").protocol == "http"  # type: ignore[union-attr]
+    tcp = parse_runtime({"compose": "c.yml", "protocol": "tcp"}, "x")
+    assert tcp is not None and tcp.protocol == "tcp" and tcp.base_path == ""
+    with pytest.raises(CatalogError, match="protocol"):
+        parse_runtime({"compose": "c.yml", "protocol": "udp"}, "x")
+
+
 def test_file_name_must_match_id(tmp_path: Path) -> None:
     import yaml
 
