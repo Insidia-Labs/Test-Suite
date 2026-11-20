@@ -123,6 +123,22 @@ class Evaluation:
 
 
 @dataclass(frozen=True)
+class Prepare:
+    """A one-off setup step upstream documents (e.g. CredData's download_data.py).
+
+    It runs ``command`` in a pinned ``image`` against a copy of the checkout. Files of
+    the checkout must come out unchanged (the answer key is read from them); only new
+    files may appear. ``cleanup`` paths are deleted afterwards.
+    """
+
+    image: str
+    command: str
+    outputs: tuple[str, ...]
+    cleanup: tuple[str, ...] = ()
+    network: bool = False
+
+
+@dataclass(frozen=True)
 class TargetSpec:
     id: str
     name: str
@@ -138,6 +154,7 @@ class TargetSpec:
     view: ViewSpec = ViewSpec()
     archived: bool = False
     notes: str = ""
+    prepare: Prepare | None = None
 
     def evaluation(self, mode: Mode) -> Evaluation:
         for item in self.evaluations:

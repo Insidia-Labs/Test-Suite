@@ -21,6 +21,7 @@ from itsuite.models import (
     Level,
     Mode,
     OutputFormat,
+    Prepare,
     Profile,
     ProfileEntry,
     Runtime,
@@ -155,6 +156,19 @@ def parse_evaluation(data: Mapping[str, Any], ctx: str) -> Evaluation:
     )
 
 
+def parse_prepare(data: Mapping[str, Any] | None, ctx: str) -> Prepare | None:
+    if not data:
+        return None
+    image = str(_field(data, "image", ctx))
+    if "@sha256:" not in image:
+        raise CatalogError(f"{ctx}: prepare image must be pinned by digest")
+    outputs = _strings(data, "outputs")
+    if not outputs:
+        raise CatalogError(f"{ctx}: prepare needs the outputs it creates")
+    return Prepare(image, str(_field(data, "command", ctx)), outputs,
+                   _strings(data, "cleanup"), bool(data.get("network", False)))  # fmt: skip
+
+
 def parse_target(data: Mapping[str, Any], ctx: str) -> TargetSpec:
     target_id = str(_field(data, "id", ctx))
     if not ID_RE.match(target_id):
@@ -175,6 +189,7 @@ def parse_target(data: Mapping[str, Any], ctx: str) -> TargetSpec:
         view=parse_view(data.get("view"), ctx),
         archived=bool(data.get("archived", False)),
         notes=str(data.get("notes", "")),
+        prepare=parse_prepare(data.get("prepare"), f"{ctx} [prepare]"),
     )
 
 

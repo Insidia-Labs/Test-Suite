@@ -11,6 +11,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from itsuite import FREEZE_DATE, __version__, adapter_check, images, tools
+from itsuite import prepare as prepare_step
 from itsuite.catalog import Catalog, load_catalog
 from itsuite.fetch import FetchError, fetch
 from itsuite.keys import REGISTRY
@@ -235,6 +236,22 @@ def cmd_tools(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> 
     return 1 if failed else 0
 
 
+def cmd_prepare(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
+    target = catalog.targets[args.target]
+    if target.prepare is None:
+        print(f"{target.id} has no setup step")
+        return 0
+    src = fetch(target.source, paths.source_dir(target.source))
+    print(f"running {target.id}'s setup step in {target.prepare.image.split('@')[0]} ...")
+    try:
+        dest = prepare_step.run(target, src, paths.cache)
+    except prepare_step.PrepareError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(f"prepared: {dest}")
+    return 0
+
+
 def cmd_check_adapter(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
     tool = catalog.tools[args.tool]
     mode = Mode(args.mode)
@@ -294,6 +311,8 @@ def build_parser() -> argparse.ArgumentParser:
     tl.add_argument("action", choices=["install", "list", "image"])
     tl.add_argument("ids", nargs="*")
     tl.add_argument("--all", action="store_true")
+    pr = sub.add_parser("prepare", help="run a target's documented setup step (e.g. CredData)")
+    pr.add_argument("target")
     ca = sub.add_parser("check-adapter", help="run one adapter once and check its output parses")
     ca.add_argument("--tool", required=True)
     ca.add_argument("--mode", required=True, choices=[m.value for m in Mode])
@@ -317,6 +336,7 @@ COMMANDS = {
     "doctor": cmd_doctor,
     "tools": cmd_tools,
     "check-adapter": cmd_check_adapter,
+    "prepare": cmd_prepare,
 }
 
 

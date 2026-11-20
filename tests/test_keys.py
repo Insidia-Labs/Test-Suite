@@ -225,7 +225,11 @@ def test_cwe_bench_java_tasks_and_variants(tmp_path: Path, ctx_for: Ctx) -> None
     assert case.locations == (Location("src/A.java", 10, 20), Location("src/B.java", 5, 50))
     patched = real_cves.build_cwe_bench(ctx_for("patched", task="p__x_CVE-1"))
     assert not patched.cases[0].positive
-    assert patched.cases[0].locations == (Location("src/A.java"), Location("src/B.java"))
+    # the patched control covers the fixed methods, not the whole file
+    assert patched.cases[0].locations == (
+        Location("src/A.java", 10, 20),
+        Location("src/B.java", 5, 50),
+    )
     with pytest.raises(KeyBuildError, match="unknown project"):
         real_cves.build_cwe_bench(ctx_for(task="nope"))
 
@@ -252,7 +256,9 @@ def test_ossf_cve_records(tmp_path: Path, ctx_for: Ctx) -> None:
     vuln = real_cves.build_ossf(ctx_for("vulnerable", task="CVE-2016-1"))
     assert vuln.cases[0].locations == (Location("x.js", 68, 68),) and vuln.cases[0].cwes == (79,)
     patched = real_cves.build_ossf(ctx_for("patched", task="CVE-2016-1"))
-    assert patched.cases[0].locations == (Location("x.js"),) and not patched.cases[0].positive
+    assert (
+        patched.cases[0].locations == (Location("x.js", 58, 78),) and not patched.cases[0].positive
+    )
 
 
 def test_creddata_labels(tmp_path: Path, ctx_for: Ctx) -> None:
@@ -358,3 +364,37 @@ def test_registry_lookup() -> None:
     assert plugin("castle") is REGISTRY["castle"]
     with pytest.raises(LookupError):
         plugin("juliet")
+
+
+def test_cwe_bench_relocates_methods_and_drops_tests(tmp_path: Path, ctx_for: Ctx) -> None:
+    write(
+        tmp_path,
+        "data/project_info.csv",
+        "id,project_slug,cve_id,cwe_id,cwe_name,github_username,github_repository_name,"
+        "github_tag,github_url,advisory_id,buggy_commit_id,fix_commit_ids\n"
+        f"1,p,CVE-9,CWE-022,Path,p,x,1.0,https://github.com/p/x,G,{'a' * 40},{'b' * 40}\n",
+    )
+    write(
+        tmp_path,
+        "data/fix_info.csv",
+        "project_slug,cve_id,github_username,github_repository_name,commit,file,class,"
+        "class_start,class_end,method,method_start,method_end,signature\n"
+        "p,CVE-9,p,x,c,src/main/java/A.java,A,1,90,unzip,12,15,unzip()\n"
+        "p,CVE-9,p,x,c,src/test/java/ATest.java,ATest,1,40,testUnzip,5,9,testUnzip()\n",
+    )
+    checkout = tmp_path / "checkout"
+    body = (
+        ["class A {"]
+        + ["  // padding"] * 19
+        + ["  void unzip(String f) {", "    open(f);", "  }", "}"]
+    )
+    write(checkout, "src/main/java/A.java", "\n".join(body))
+    ctx = KeyContext("t", tmp_path, Variant("vulnerable"), "c" * 40, {}, "p", task_src=checkout)
+    case = real_cves.build_cwe_bench(ctx).cases[0]
+    assert case.locations == (Location("src/main/java/A.java", 21, 24),)  # found by name, span kept
+    no_checkout = real_cves.build_cwe_bench(ctx_for("vulnerable", task="p")).cases[0]
+    assert no_checkout.locations == (Location("src/main/java/A.java", 12, 15),)
+    assert real_cves.is_test_file("module/src/test/java/X.java") and real_cves.is_test_file(
+        "FooIT.java"
+    )
+    assert not real_cves.is_test_file("src/main/java/Testing.java")

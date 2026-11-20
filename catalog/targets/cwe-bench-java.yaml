@@ -19,5 +19,8 @@ evaluations:
     variants:
       - {name: vulnerable}
       - {name: patched}
-    notes: Vulnerable = buggy commit, the fixed methods are positive. Patched = last fix commit, a related-CWE finding in a fixed file is a false positive (file-level control).
+    notes: >-
+      Vulnerable = buggy commit, the fixed methods are positive. Patched = last fix commit, the
+      same methods are negative. fix_info.csv mixes buggy and fixed line numbers and lists test
+      methods, so test files are dropped and each method is found by name in the scanned checkout.
 notes: Each task fetches the project itself at the pinned commit from the CSV, so the first run of a task downloads that project.

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from itsuite import container, images, live
+from itsuite import prepare as prepare_step
 from itsuite.adapter_check import tool_env
 from itsuite.docker_ops import DockerError
 from itsuite.fetch import fetch
@@ -154,6 +155,10 @@ def prepare(request: RunRequest, paths: SuitePaths, flag: str) -> Prepared:
     task = _resolve_task(plugin, bench_src, ev, request.task)
     source = _task_source(target, task, request.variant)
     src = bench_src if source == target.source else fetch(source, paths.source_dir(source))
+    if target.prepare is not None:
+        if not prepare_step.is_prepared(paths.cache, target):
+            raise RunError(f"{target.id} needs its setup step first: itsuite prepare {target.id}")
+        src = prepare_step.prepared_dir(paths.cache, target)
     missing = [p for p in ev.params.get("requires_paths", ()) if not (src / str(p)).exists()]
     if missing:
         raise RunError(f"{target.id}: {missing} missing in {src}; see the manifest notes")
@@ -164,6 +169,7 @@ def prepare(request: RunRequest, paths: SuitePaths, flag: str) -> Prepared:
         target.source.commit,
         _resolved_params(ev, paths.root, flag),
         task.task_id,
+        task_src=None if src == bench_src else src,
     )
     key = plugin.build(ctx)
     digest = paths.keys.seal(key)

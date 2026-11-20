@@ -78,6 +78,7 @@ class KeyContext:
     commit: str
     params: Mapping[str, Any] = field(default_factory=dict)
     task: str = ""
+    task_src: Path | None = None  # the task's own checkout, for keys that read code
 
 
 @dataclass(frozen=True)
