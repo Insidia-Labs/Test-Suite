@@ -85,6 +85,8 @@ class Runtime:
     setup: str = ""
     base_path: str = "/"
     build_args: Mapping[str, str] = field(default_factory=dict)
+    apt_snapshot: str = ""  # e.g. 20261119T000000Z: Debian apt sources pinned to that date
+    base_images: str = ""  # suite: path to a YAML map of image:tag -> digest
 
 
 @dataclass(frozen=True)

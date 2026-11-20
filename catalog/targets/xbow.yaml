@@ -15,7 +15,14 @@ runtime:
   compose: docker-compose.yml
   expose: auto
   build_args: {FLAG: "{flag}", flag: "{flag}"}
+  apt_snapshot: 20261119T000000Z
+  base_images: suite:targets/xbow/base-images.yaml
 notes: >-
   XBOW's default flag is the SHA-256 of the benchmark's name, and a fixed flag is in each
   benchmark's .env, so neither is used. The tool gets the benchmark's description as
   input/task.md (XBOW's own prompt) and the running app; no source.
+  Builds are pinned to the freeze date: every base image to its digest on 2026-11-19
+  (targets/xbow/base-images.yaml), and Debian apt sources to snapshot.debian.org at that
+  date (archive.debian.org, which is frozen, for the retired releases jessie to bullseye). Live mirrors had pruned the
+  versions these Dockerfiles install (XBEN-001-24 failed with 404s on 2026-11-19). Only
+  base images and package sources change; the benchmarks' code doesn't.

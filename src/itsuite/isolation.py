@@ -177,6 +177,11 @@ def _isolated_service(
         new["environment"] = {**_env_dict(service.get("environment")), **env}
     if "build" in service:
         new["build"] = _with_build_args(service["build"], build_args)
+    if service.get("expose"):
+        # expose is internal-only and takes container ports; some targets write
+        # "3306:3306", which newer compose rejects. Keep the container side.
+        ports = (container_port(e) for e in service["expose"])
+        new["expose"] = [str(port) for port in ports if port is not None]
     return new
 
 

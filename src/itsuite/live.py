@@ -6,10 +6,11 @@ import subprocess
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import yaml
 
-from itsuite import docker_ops
+from itsuite import apt_pin, docker_ops
 from itsuite.docker_ops import ComposeProject, DockerError, Runner
 from itsuite.isolation import IsolationError, auto_exposes, isolate, target_networks
 from itsuite.models import Expose, Runtime, Variant
@@ -35,6 +36,14 @@ def compose_file(runtime: Runtime, project_dir: Path, suite_root: Path) -> Path:
     return project_dir / runtime.compose
 
 
+def _base_images(runtime: Runtime, suite_root: Path) -> dict[str, str]:
+    if not runtime.base_images:
+        return {}
+    path = suite_root / runtime.base_images.removeprefix("suite:")
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return {str(k): str(v) for k, v in (data.get("images") or {}).items()}
+
+
 def _exposes(runtime: Runtime, spec: Mapping[str, object]) -> tuple[Expose, ...]:
     exposes = tuple(auto_exposes(spec)) if runtime.auto_expose else runtime.expose
     if not exposes:
@@ -54,6 +63,35 @@ def _check_egress(project: ComposeProject, spec: Mapping[str, object], runner: R
             raise IsolationError(f"network {network} can reach the internet; stopping the run")
 
 
+def load_spec(runtime: Runtime, project_dir: Path, suite_root: Path) -> dict[str, Any]:
+    """The target's compose spec with its build pins (base images, apt snapshot) applied."""
+    spec = yaml.safe_load(
+        compose_file(runtime, project_dir, suite_root).read_text(encoding="utf-8")
+    )
+    if runtime.apt_snapshot or runtime.base_images:
+        spec = apt_pin.with_build_pins(
+            spec, project_dir, runtime.apt_snapshot, _base_images(runtime, suite_root)
+        )
+    return dict(spec)
+
+
+def build_only(
+    runtime: Runtime, project_dir: Path, suite_root: Path, work: Path, name: str,
+    build_args: Mapping[str, str], runner: Runner = subprocess.run,
+) -> tuple[bool, str]:  # fmt: skip
+    """Build a target's images the way a run would, without starting anything."""
+    spec = isolate(load_spec(runtime, project_dir, suite_root), {}, None, build_args)
+    work.mkdir(parents=True, exist_ok=True)
+    project = ComposeProject(name, _write_isolated(spec, work), project_dir)
+    try:
+        done = runner(project.argv("build"), capture_output=True, text=True, check=False,
+                      timeout=docker_ops.UP_TIMEOUT)  # fmt: skip
+    except subprocess.TimeoutExpired:
+        return False, "build timed out"
+    tail = " | ".join((done.stderr or "").strip().splitlines()[-2:])
+    return done.returncode == 0, tail
+
+
 def start(
     runtime: Runtime,
     variant: Variant,
@@ -64,9 +102,7 @@ def start(
     build_args: Mapping[str, str],
     runner: Runner = subprocess.run,
 ) -> LiveTarget:
-    spec = yaml.safe_load(
-        compose_file(runtime, project_dir, suite_root).read_text(encoding="utf-8")
-    )
+    spec = load_spec(runtime, project_dir, suite_root)
     exposes = _exposes(runtime, spec)
     host_ports = {expose: docker_ops.free_port() for expose in exposes}
     isolated = isolate(spec, host_ports, variant.env, build_args)

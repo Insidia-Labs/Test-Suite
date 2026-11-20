@@ -121,6 +121,7 @@ def test_isolate_makes_networks_internal_and_adds_gateway() -> None:
     assert web["build"] == {"context": "./app", "args": {"FLAG": "FLAG{x}"}}
     assert web["environment"] == {"A": "1", "B": "", "vulnerable": "0"}
     assert out["services"]["db"]["build"] == {"context": "./mysql", "args": {"FLAG": "FLAG{x}"}}
+    assert out["services"]["db"]["expose"] == ["3306"]  # "3306:3306" normalized
     gateway = out["services"]["its-gateway-web-80"]
     assert gateway["image"] == GATEWAY_IMAGE
     assert gateway["ports"] == ["127.0.0.1:41234:80"]

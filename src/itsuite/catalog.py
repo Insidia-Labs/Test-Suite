@@ -122,7 +122,16 @@ def parse_runtime(data: Mapping[str, Any] | None, ctx: str) -> Runtime | None:
         setup=str(data.get("setup", "")),
         base_path=str(data.get("base_path", "/")),
         build_args=_str_map(data.get("build_args"), ctx),
+        apt_snapshot=_snapshot(data.get("apt_snapshot"), ctx),
+        base_images=str(data.get("base_images", "")),
     )
+
+
+def _snapshot(value: Any, ctx: str) -> str:
+    text = "" if value is None else str(value)
+    if text and not re.match(r"^\d{8}T\d{6}Z$", text):
+        raise CatalogError(f"{ctx}: apt_snapshot must look like 20240601T000000Z")
+    return text
 
 
 def parse_variant(item: Any, ctx: str) -> Variant:
