@@ -264,8 +264,28 @@ def test_container_argv_mounts_env_and_network(
         Mode.SAST,
         container=True,
     )
-    with pytest.raises(orchestrate.RunError, match="no image"):
+    with pytest.raises(orchestrate.RunError, match="no tools image"):
         orchestrate._container_plan(no_image, tmp_path, "", suite, "bridge", ())
+    (suite.cache / "tools").mkdir(parents=True)
+    (suite.cache / "tools" / "image.txt").write_text("itsuite-tools:abc\n")
+    plan = orchestrate._container_plan(no_image, tmp_path, "", suite, "bridge", ())
+    assert plan.image == "itsuite-tools:abc"  # falls back to the suite tools image
+    assert "--user" in container.argv(["x"], plan)
+    from itsuite.models import Install
+
+    docker_tool = ToolSpec(
+        "zap",
+        "Z",
+        "baseline",
+        "1",
+        "s",
+        "MIT",
+        {},
+        install=Install("docker", image="zap@sha256:" + "0" * 64),
+    )
+    zap = orchestrate.RunRequest(docker_tool, _castle_target(), Mode.SAST, container=True)
+    with pytest.raises(orchestrate.RunError, match="runs Docker itself"):
+        orchestrate._container_plan(zap, tmp_path, "", suite, "bridge", ())
 
 
 def test_container_reaches_live_target_only_through_the_gateway() -> None:

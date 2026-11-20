@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from itsuite import container, live
+from itsuite import container, images, live
 from itsuite.adapter_check import tool_env
 from itsuite.docker_ops import DockerError
 from itsuite.fetch import fetch
@@ -195,10 +195,14 @@ def _container_plan(
     network: str,
     env_names: tuple[str, ...],
 ) -> container.ContainerPlan:
-    if not request.tool.image:
-        raise RunError(f"{request.tool.id} has no image for container mode")
+    install = request.tool.install
+    if install is not None and install.kind == "docker":
+        raise RunError(f"{request.tool.id} runs Docker itself, so it can't run sealed")
+    image = request.tool.image or images.current_image(paths.cache)
+    if not image:
+        raise RunError("no tools image yet; run `itsuite tools image` first")
     return container.ContainerPlan(
-        image=request.tool.image,
+        image=image,
         name=f"its-tool-{run_dir.name.lower()}",
         run_dir=run_dir,
         view_dir=view_dir,

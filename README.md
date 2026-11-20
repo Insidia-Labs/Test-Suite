@@ -62,6 +62,17 @@ uv run itsuite run --tool argus --target dvwa --mode dast --variant low
 uv run itsuite run --tool argus --target dvwa --mode dast --variant impossible
 ```
 
+Sealed runs put the tool in a container that sees only the view, its input and
+its output, with no Docker socket. Published numbers should come from these:
+
+```bash
+uv run itsuite tools image        # one image with every pinned tool, on a pinned base
+uv run itsuite run --tool bandit --target owasp-benchmark-python --mode sast --container
+```
+
+ZAP runs its own container, so it can't run sealed; its results are labelled
+unsealed.
+
 Run a profile (the same plan for every tool; samples use a fixed seed):
 
 ```bash

@@ -81,8 +81,13 @@ process can read `.cache/` and can ask the Docker daemon about the target's
 images, where a built-in flag is visible. Host-mode results are therefore
 labelled "unsealed". **Container mode** mounts only the view (read-only), the
 input folder (read-only), an output folder and the adapter, with no Docker
-socket, so those results are labelled "sealed". Published numbers should come
-from container mode.
+socket, so those results are labelled "sealed". The container runs the suite
+tools image (`itsuite tools image`): a pinned base image plus exactly the pinned
+tool versions, tagged by a hash of its contents, so a different tool version
+gives a different tag. Against a live target, the tool container joins only the
+edge network, where it can reach the gateway (and the internet, for its own model
+API) but not the target's other services. Published numbers should come from
+container mode. Tools that run Docker themselves (ZAP) can't run sealed.
 
 ### 1.4 Everything is pinned
 

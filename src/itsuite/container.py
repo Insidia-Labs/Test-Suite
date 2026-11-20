@@ -10,6 +10,7 @@ other services, such as its database.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -47,9 +48,11 @@ def argv(command: Sequence[str], plan: ContainerPlan) -> list[str]:
     """``docker run`` for the tool. Environment values are passed by name (``-e NAME``),
     so they come from the docker client's scrubbed environment and never sit on argv."""
     env = [arg for name in plan.env_names for arg in ("-e", name)]
+    user = f"{os.getuid()}:{os.getgid()}"  # output stays owned by whoever runs the suite
     return [
         "docker", "run", "--rm", "--name", plan.name, "--network", plan.network,
-        *HARDENING, *env, *mounts(plan), "-w", f"{ROOT}/out", plan.image, *command,
+        "--user", user, *HARDENING, *env, *mounts(plan), "-w", f"{ROOT}/out", plan.image,
+        *command,
     ]  # fmt: skip
 
 

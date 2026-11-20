@@ -10,7 +10,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from itsuite import FREEZE_DATE, __version__, adapter_check, tools
+from itsuite import FREEZE_DATE, __version__, adapter_check, images, tools
 from itsuite.catalog import Catalog, load_catalog
 from itsuite.fetch import FetchError, fetch
 from itsuite.keys import REGISTRY
@@ -210,6 +210,10 @@ def cmd_report(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) ->
 
 
 def cmd_tools(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
+    if args.action == "image":
+        tag = images.build(list(catalog.tools.values()), paths.cache)
+        print(f"built {tag}; sealed runs (--container) use it")
+        return 0
     ids = [t for t in catalog.tools if catalog.tools[t].install] if args.all else args.ids
     if args.action == "list" or not ids:
         rows = [["tool", "version", "install", "installed", "verified"]]
@@ -287,7 +291,7 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument("--tool", required=True)
     imp.add_argument("--target", required=True)
     tl = sub.add_parser("tools", help="install tools at their pinned versions, or list them")
-    tl.add_argument("action", choices=["install", "list"])
+    tl.add_argument("action", choices=["install", "list", "image"])
     tl.add_argument("ids", nargs="*")
     tl.add_argument("--all", action="store_true")
     ca = sub.add_parser("check-adapter", help="run one adapter once and check its output parses")
@@ -322,7 +326,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         paths = SuitePaths(find_root(Path.cwd()))
         catalog = load_catalog(paths.root)
         return COMMANDS[args.command](args, catalog, paths)
-    except (CatalogError, RunError, FetchError, KeyBuildError, SealError, KeyError) as exc:
+    except (
+        CatalogError,
+        RunError,
+        FetchError,
+        KeyBuildError,
+        SealError,
+        KeyError,
+        tools.ToolInstallError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
