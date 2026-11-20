@@ -18,6 +18,7 @@ from itsuite import (
     adjudication,
     images,
     live,
+    lock,
     model_server,
     profile_runner,
     scorecard,
@@ -378,6 +379,28 @@ def cmd_model(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> 
     return 0
 
 
+def cmd_lock(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
+    """Write the lock file, check it is up to date (--check), or check every pin upstream."""
+    pins = lock.collect(catalog, paths.root)
+    if args.online:
+        problems = lock.check_online(pins)
+        for problem in problems:
+            pin = problem.pin
+            print(f"{problem.status}: {pin.kind} {pin.ref} ({pin.used_by}): {problem.detail}")
+        gone = sum(p.status == "missing" for p in problems)
+        print(f"{len(pins)} pins checked: {gone} gone upstream, {len(problems) - gone} not checked")
+        return 1 if problems else 0
+    changes = lock.stale(paths.root, pins)
+    for line in changes:
+        print(line)
+    if args.check:
+        print(f"{lock.LOCK_FILE} is {'out of date: run itsuite lock' if changes else 'up to date'}")
+        return 1 if changes else 0
+    digest = lock.write(paths.root, pins)
+    print(f"{lock.LOCK_FILE}: {len(pins)} pins, digest {digest[:16]}")
+    return 0
+
+
 def cmd_doctor(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
     print(f"itsuite {__version__} (frozen {FREEZE_DATE}), root {paths.root}")
     print(f"answer-key plugins: {', '.join(sorted(REGISTRY))}")
@@ -394,6 +417,12 @@ def build_parser() -> argparse.ArgumentParser:
     ls.add_argument("--level", choices=[f"L{i}" for i in range(5)])
     ls.add_argument("--mode", choices=[m.value for m in Mode])
     sub.add_parser("validate", help="check the catalog")
+    lk = sub.add_parser("lock", help="write suite.lock.json, or check it or the pins")
+    lk_mode = lk.add_mutually_exclusive_group()
+    lk_mode.add_argument(
+        "--check", action="store_true", help="fail if the lock file is out of date"
+    )
+    lk_mode.add_argument("--online", action="store_true", help="check every pin still resolves")
     sub.add_parser("doctor", help="check docker and plugins")
     fe = sub.add_parser("fetch", help="fetch a target (or all) at its pinned commit")
     fe.add_argument("target")
@@ -464,6 +493,7 @@ def build_parser() -> argparse.ArgumentParser:
 COMMANDS = {
     "list": cmd_list,
     "validate": cmd_validate,
+    "lock": cmd_lock,
     "fetch": cmd_fetch,
     "run": cmd_run,
     "profile": cmd_profile,

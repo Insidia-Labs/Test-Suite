@@ -224,7 +224,24 @@ uv run mypy src
 ```
 
 Tests run offline; fetching and Docker are replaced with fakes where needed.
-Coverage must stay at 80% or above (it is about 94%).
+Coverage must stay at 80% or above (it is about 92%).
+
+Every pin the suite depends on is listed in `suite.lock.json`: target commits and
+archive hashes, tool installs, the model revision, image digests (in the catalog,
+Dockerfiles, adapter scripts and the harness itself), the Debian snapshot date and
+pip pins. After changing a pin, write the lock file again and commit it with the
+change:
+
+```bash
+uv run itsuite lock            # write suite.lock.json
+uv run itsuite lock --check    # fail if it is out of date (CI runs this)
+uv run itsuite lock --online   # ask upstream whether every pin still resolves
+```
+
+CI (`.github/workflows/ci.yml`) runs the checks above, `itsuite validate` and
+`itsuite lock --check` on Python 3.10 and 3.14 for every push and pull request.
+Every Monday it also runs `itsuite lock --online`, and checks the CWE families
+against MITRE's latest CWE release.
 
 ## License
 

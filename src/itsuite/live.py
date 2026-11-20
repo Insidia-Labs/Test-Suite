@@ -46,7 +46,7 @@ def compose_file(runtime: Runtime, project_dir: Path, suite_root: Path) -> Path:
     return project_dir / runtime.compose
 
 
-def _base_images(runtime: Runtime, suite_root: Path) -> dict[str, str]:
+def base_images(runtime: Runtime, suite_root: Path) -> dict[str, str]:
     if not runtime.base_images:
         return {}
     path = suite_root / runtime.base_images.removeprefix("suite:")
@@ -97,7 +97,7 @@ def load_spec(runtime: Runtime, project_dir: Path, suite_root: Path) -> dict[str
             else ()
         )
         spec = apt_pin.with_build_pins(
-            spec, project_dir, runtime.apt_snapshot, _base_images(runtime, suite_root), pins
+            spec, project_dir, runtime.apt_snapshot, base_images(runtime, suite_root), pins
         )
     return dict(spec)
 
