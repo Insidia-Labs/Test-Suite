@@ -10,7 +10,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from itsuite import FREEZE_DATE, __version__, adapter_check, images, tools
+from itsuite import FREEZE_DATE, __version__, adapter_check, images, live, scorecard, tools
 from itsuite import prepare as prepare_step
 from itsuite.catalog import Catalog, load_catalog
 from itsuite.fetch import FetchError, fetch
@@ -252,6 +252,32 @@ def cmd_prepare(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -
     return 0
 
 
+def cmd_build_check(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
+    """Build every task of a live target with the suite's pins; report what fails."""
+    target = catalog.targets[args.target]
+    if target.runtime is None:
+        raise RunError(f"{target.id} has no live runtime")
+    src = fetch(target.source, paths.source_dir(target.source))
+    plugin = REGISTRY.get(target.evaluations[0].key)
+    tasks = [t.subdir for t in plugin.tasks(src, {})] if plugin and plugin.tasks else [""]
+    if args.sample and len(tasks) > args.sample:
+        tasks = sorted(random.Random(args.seed).sample(tasks, args.sample))
+    args_for_build = {k: v.replace("{flag}", "FLAG{build-check}")
+                      for k, v in target.runtime.build_args.items()}  # fmt: skip
+    failed = 0
+    for subdir in tasks:
+        name = "its-build-" + (subdir.rsplit("/", 1)[-1].lower() or target.id)
+        project_dir = src / subdir if subdir else src
+        work = paths.cache / "private" / name
+        ok, detail = live.build_only(
+            target.runtime, project_dir, paths.root, work, name, args_for_build
+        )
+        failed += 0 if ok else 1
+        print(f"{'ok  ' if ok else 'FAIL'} {subdir or target.id}" + ("" if ok else f"  {detail}"))
+    print(f"{len(tasks) - failed}/{len(tasks)} built")
+    return 1 if failed else 0
+
+
 def cmd_check_adapter(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
     tool = catalog.tools[args.tool]
     mode = Mode(args.mode)
@@ -264,6 +290,18 @@ def cmd_check_adapter(args: argparse.Namespace, catalog: Catalog, paths: SuitePa
     if result.detail:
         print(result.detail, file=sys.stderr)
     return 0 if result.status == "ok" else 1
+
+
+def cmd_scorecard(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
+    root = Path(args.results) if args.results else paths.results
+    table = scorecard.build(load_scores(root), catalog, args.by)
+    text = scorecard.markdown(table, args.by, root)
+    if args.out:
+        Path(args.out).write_text(text, encoding="utf-8")
+        print(f"wrote {args.out}")
+    else:
+        print(text, end="")
+    return 0
 
 
 def cmd_doctor(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
@@ -311,6 +349,10 @@ def build_parser() -> argparse.ArgumentParser:
     tl.add_argument("action", choices=["install", "list", "image"])
     tl.add_argument("ids", nargs="*")
     tl.add_argument("--all", action="store_true")
+    bc = sub.add_parser("build-check", help="build a live target's images with the pins")
+    bc.add_argument("target")
+    bc.add_argument("--sample", type=int, default=0)
+    bc.add_argument("--seed", type=int, default=0)
     pr = sub.add_parser("prepare", help="run a target's documented setup step (e.g. CredData)")
     pr.add_argument("target")
     ca = sub.add_parser("check-adapter", help="run one adapter once and check its output parses")
@@ -319,6 +361,10 @@ def build_parser() -> argparse.ArgumentParser:
     ca.add_argument("--source", help="folder to scan (source modes)")
     ca.add_argument("--url", help="URL to scan (live modes)")
     ca.add_argument("--timeout", type=int, default=1800)
+    sc = sub.add_parser("scorecard", help="per-tool scorecard and comparison")
+    sc.add_argument("--by", choices=scorecard.GROUPINGS, default="capability")
+    sc.add_argument("--results")
+    sc.add_argument("--out", help="write Markdown here instead of printing it")
     rep = sub.add_parser("report", help="summarize scored runs")
     rep.add_argument("--results")
     rep.add_argument("--json", action="store_true")
@@ -337,6 +383,8 @@ COMMANDS = {
     "tools": cmd_tools,
     "check-adapter": cmd_check_adapter,
     "prepare": cmd_prepare,
+    "build-check": cmd_build_check,
+    "scorecard": cmd_scorecard,
 }
 
 
