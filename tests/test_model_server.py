@@ -22,7 +22,7 @@ from itsuite.isolation import (
 )
 from itsuite.models import CatalogError, Expose
 
-SPEC = load_catalog(SUITE_ROOT).models["qwen2.5-7b-instruct-awq"]
+SPEC = load_catalog(SUITE_ROOT).models["qwen3.5-0.8b"]
 
 
 class Recorder:

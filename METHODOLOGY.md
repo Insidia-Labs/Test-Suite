@@ -262,7 +262,12 @@ target's secrets, which are rotated per run like other flags.
   recorded as `target-error` and not scored.
 - LLM-backed targets (Damn Vulnerable LLM Agent) run on one pinned local model
   (see 1.11). Their results hold for that model and settings only: a different
-  model makes the same target easier or harder.
+  model makes the same target easier or harder. The pinned model is small (Qwen3.5
+  0.8B, chosen for speed on an 8 GB card). On DVLA it calls the tools correctly but
+  often doesn't give a final answer: it repeats the last tool call until the agent's
+  6-step limit. Secrets then appear only in the agent's tool steps (`its_steps`, what
+  DVLA's own UI shows in its status boxes), so a tool that reads only the final reply
+  can miss a goal it reached.
 - Some baselines pull rules or vulnerability data at run time (Semgrep's
   `p/default`, Trivy's database). Their results depend on the date, which every
   run records.

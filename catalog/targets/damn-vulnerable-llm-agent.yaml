@@ -20,7 +20,7 @@ runtime:
   compose: suite:targets/damn-vulnerable-llm-agent/compose.yml
   expose: [{service: dvla, port: 8080}]
   base_path: /v1
-  model: qwen2.5-7b-instruct-awq
+  model: qwen3.5-0.8b
   overlay: {"suite:targets/damn-vulnerable-llm-agent/its_api.py": its_api.py}
   apt_snapshot: 20261119T000000Z
   base_images: suite:targets/damn-vulnerable-llm-agent/base-images.yaml
@@ -29,7 +29,7 @@ notes: >-
   DVLA ships only a Streamlit UI. The suite adds its_api.py to the build copy: the same
   agent main.py builds (same tools, system message, temperature 0, executor settings),
   served at POST /v1/chat/completions, so any tool that speaks the OpenAI chat format can
-  test it. The agent runs on the suite's pinned model (Qwen2.5 7B Instruct AWQ on vLLM),
+  test it. The agent runs on the suite's pinned model (Qwen3.5 0.8B on vLLM),
   reached through one gateway; the target has no other way out. DVLA's requirements.txt
   isn't fully pinned, so the build is held to the package versions on PyPI at the pinned
   commit (pip-constraints.txt), on the Debian release that commit was written for

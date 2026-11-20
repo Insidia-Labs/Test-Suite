@@ -78,13 +78,14 @@ served by vLLM on the host GPU, so every tool meets the same model. Install and
 start it once; it keeps running until stopped:
 
 ```bash
-uv run itsuite model install qwen2.5-7b-instruct-awq   # pinned vLLM + the model at a fixed revision
-uv run itsuite model serve qwen2.5-7b-instruct-awq     # listens on Docker's bridge address only
+uv run itsuite model install qwen3.5-0.8b   # pinned vLLM + the model at a fixed revision
+uv run itsuite model serve qwen3.5-0.8b     # listens on Docker's bridge address only
 uv run itsuite model status
 uv run itsuite model stop
 ```
 
-The pinned settings fit an 8 GB card (4-bit weights, a 4096-token context). A
+The model is Qwen3.5 0.8B: small enough to answer quickly, and it needs about
+3.4 GB of free GPU memory (`--gpu-memory-utilization 0.45` of an 8 GB card). A
 run against an LLM-backed target refuses to start when the model isn't being
 served.
 
@@ -199,6 +200,7 @@ answer key and wait for adjudication.
 | Trivy, OSV-Scanner | PyGoat, TerraGoat | Adapter checks only: output parsed (no scored target yet) |
 | XBOW (all 104) | build check | Every benchmark builds with the pinned bases and Debian snapshot |
 | Harness self-test | Damn Vulnerable MCP Server | All 15 rotated flags found; none of the published flags left in the image |
+| Harness self-test | Damn Vulnerable LLM Agent on Qwen3.5 0.8B, outside Docker | All 3 README attacks reach their secrets (2.8 s in total). The scored run in Docker is pending: its image build stalls on this host's IPv4 path to the Debian and PyPI mirrors |
 
 Argus finds nothing on the live apps because its web checks need a `{{payload}}`
 placeholder in a hand-written request, and the suite gives every tool only the
