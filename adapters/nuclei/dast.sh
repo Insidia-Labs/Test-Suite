@@ -13,10 +13,8 @@ if [ ! -d "$templates" ]; then
   git clone -q --depth 1 --branch "$ref" https://github.com/projectdiscovery/nuclei-templates.git "$templates"
 fi
 [ "$(git -C "$templates" rev-parse HEAD)" = "$commit" ] || { echo "nuclei templates are not at $commit" >&2; exit 3; }
-nuclei -u "$url" -t "$templates" -sarif-export "$out/results.sarif" -silent \
+nuclei -u "$url" -t "$templates" -j -o "$out/results.jsonl" -omit-raw -silent \
   -disable-update-check -no-interactsh -rate-limit 50
-# A finished scan with no results may write no file; record it as an empty run so it
-# scores as "found nothing" rather than "no output".
-if [ ! -s "$out/results.sarif" ]; then
-  printf '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"nuclei"}},"results":[]}]}\n' > "$out/results.sarif"
-fi
+# JSONL, not -sarif-export: Nuclei's SARIF has no URL or CWE for its findings. A finished
+# scan that found nothing may write no file; an empty file means "found nothing".
+touch "$out/results.jsonl"

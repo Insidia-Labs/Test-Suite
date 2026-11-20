@@ -52,6 +52,7 @@ class Contamination(str, Enum):
 class OutputFormat(str, Enum):
     SARIF = "sarif"
     TRUFFLEHOG = "trufflehog-jsonl"
+    NUCLEI = "nuclei-jsonl"
     UPSTREAM_JSONL = "upstream-jsonl"
     AGENTDOJO = "agentdojo-logs"
     FLAGS = "flags"  # any text the tool writes; the scorer looks for the sealed flag

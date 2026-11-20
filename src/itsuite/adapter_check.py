@@ -18,7 +18,7 @@ from itsuite.models import Mode, OutputFormat, ToolSpec
 from itsuite.runner import OK, clean_env, execute, final_status, render_command
 from itsuite.tools import bin_dir
 
-SCORED_FORMATS = (OutputFormat.SARIF, OutputFormat.TRUFFLEHOG)
+SCORED_FORMATS = (OutputFormat.SARIF, OutputFormat.TRUFFLEHOG, OutputFormat.NUCLEI)
 
 
 @dataclass(frozen=True)

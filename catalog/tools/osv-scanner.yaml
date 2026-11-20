@@ -13,3 +13,4 @@ install:
   url: https://github.com/google/osv-scanner/releases/download/v2.7.1/osv-scanner_linux_amd64
   sha256: fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8
   binary: osv-scanner
+verified: true  # 2026-11-20: sca checked on PyGoat (1,919 findings), from a copy outside any git repo

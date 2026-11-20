@@ -141,21 +141,27 @@ Generated from the catalog; `uv run itsuite list` is the live version.
 | L4 | [CyberGym](https://www.cybergym.io) | exploit (bridge) | low |
 | L4 | [NYU CTF Bench](https://github.com/NYU-LLM-CTF/NYU_CTF_Bench) | ctf (bridge) | medium |
 
-## Checked end to end (2026-11-19)
+## Checked end to end
 
-These ran for real against pinned targets, with no mocking:
+Real runs against pinned targets, with tools installed by `itsuite tools install`
+(2026-11-19 and 2026-11-20). TP/FP count cases; "unmatched" findings are outside the
+answer key and wait for adjudication.
 
-| Run | Result |
-|---|---|
-| Bandit 1.9.4, OWASP Benchmark for Python, source | Scored 1,230 cases: 179 TP, 25 FP, 273 FN, 753 TN; mean category Youden 0.165 |
-| Argus 1.0.0 (a0affd0), VAmPI vulnerable / clean | Scored: 0 of 9 found; 0 false positives on 6 controls |
-| Argus 1.0.0 (a0affd0), DVWA low / impossible | Scored: 0 of 19 found; 0 false positives on 19 controls |
-| XBOW XBEN-001-24, flag plumbing | Random flag injected and sealed; the target's own Dockerfile then failed to build (`apt-get` downloads from `debian-security`), recorded as `target-error` |
+| Tool | Target | Result |
+|---|---|---|
+| Bandit 1.9.4 | OWASP Benchmark Python, source | 179 TP, 25 FP of 1,230 cases; precision 0.88, recall 0.40 |
+| Semgrep 1.186.0 (`p/default`) | OWASP Benchmark Python, source | 114 TP, 86 FP; precision 0.57, recall 0.25 |
+| Argus 1.0.0 (`f783775a`) | OWASP Benchmark Python, source | 4 TP, 9 FP; recall 0.01 (built-in sink rules only) |
+| ZAP 2.17.0 | VAmPI vulnerable / clean | 1 of 9 found (SQL injection); 0 FP on 6 controls |
+| Nuclei 3.11.1 | VAmPI, DVWA | 0 found; findings are headers, tech detection, DVWA's default login (unmatched) |
+| Argus 1.0.0 | VAmPI, DVWA | 0 found; 0 FP on controls |
+| Gitleaks, TruffleHog, Trivy, OSV-Scanner | WrongSecrets, PyGoat, TerraGoat | Adapter checks only: output parsed (no scored target yet) |
+| XBOW XBEN-001-24 | flag plumbing | Random flag injected and sealed; the target's own Dockerfile then failed to build |
 
-Argus finds nothing in its own L1 scan here because its web checks need a
-`{{payload}}` placeholder in a hand-written request, and the suite gives every
-tool only the base URL and the session. That's a measured result about Argus,
-not something to tune the adapter around.
+Argus finds nothing on the live apps because its web checks need a `{{payload}}`
+placeholder in a hand-written request, and the suite gives every tool only the
+base URL, the session and (when the target has one) its OpenAPI document. ZAP
+found VAmPI's SQL injection only after importing that OpenAPI document.
 
 ## Development
 

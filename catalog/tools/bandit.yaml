@@ -13,3 +13,4 @@ install:
   kind: pip
   packages: ['bandit[sarif]==1.9.4']
   binaries: [bandit]
+verified: true  # 2026-11-20: sast scored on OWASP Benchmark Python (1,230 cases)

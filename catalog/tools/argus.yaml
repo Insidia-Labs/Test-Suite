@@ -21,3 +21,4 @@ install:
   kind: pip
   packages: ['insidia @ git+https://github.com/Rushi-Balapure/Insidia-Labs-Argus@f783775a18b5b940012be0f3f3e75b058e743dc3#subdirectory=core']
   binaries: [insidia]
+verified: true  # 2026-11-20: dast scored on VAmPI and DVWA; sast scored on OWASP Benchmark Python; secrets checked on WrongSecrets

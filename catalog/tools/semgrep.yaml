@@ -13,3 +13,4 @@ install:
   kind: pip
   packages: [semgrep==1.186.0]
   binaries: [semgrep, pysemgrep]
+verified: true  # 2026-11-20: sast scored on OWASP Benchmark Python (1,230 cases)

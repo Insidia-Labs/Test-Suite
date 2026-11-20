@@ -220,9 +220,43 @@ def parse_trufflehog(path: Path) -> list[Finding]:
     return findings
 
 
+def _nuclei_finding(item: Any) -> Finding:
+    """Nuclei's SARIF export has no URL or CWE; its JSONL has both (matched-at, cwe-id)."""
+    info = item.get("info") or {}
+    classification = info.get("classification") or {}
+    matcher = item.get("matcher-name")
+    rule = str(item.get("template-id", "")) + (f":{matcher}" if matcher else "")
+    return Finding(
+        rule=rule,
+        cwes=extract_cwes(_strings(classification.get("cwe-id"))),
+        url=str(item.get("matched-at") or item.get("url") or ""),
+        message=str(info.get("name", "")),
+        level=str(info.get("severity", "")),
+    )
+
+
+def parse_nuclei(path: Path) -> list[Finding]:
+    """Nuclei -jsonl output: one JSON object per finding; an empty file means none."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise FindingsError(f"{path.name}: not readable ({exc})") from exc
+    findings = []
+    for number, line in enumerate(lines, start=1):
+        if not line.strip():
+            continue
+        try:
+            findings.append(_nuclei_finding(json.loads(line)))
+        except (json.JSONDecodeError, AttributeError, TypeError) as exc:
+            raise FindingsError(f"{path.name}:{number}: not a Nuclei result") from exc
+    return findings
+
+
 def load_findings(path: Path, fmt: OutputFormat) -> list[Finding]:
     if fmt == OutputFormat.SARIF:
         return parse_sarif(path)
     if fmt == OutputFormat.TRUFFLEHOG:
         return parse_trufflehog(path)
+    if fmt == OutputFormat.NUCLEI:
+        return parse_nuclei(path)
     raise FindingsError(f"{fmt.value} output is scored by its own importer, not as findings")

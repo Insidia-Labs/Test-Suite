@@ -224,3 +224,27 @@ def test_bare_file_names_and_unresolved_paths() -> None:
     assert unresolved_path("/somewhere/else/A.java", ["/view"])
     assert not unresolved_path("/view/A.java", ["/view"])
     assert not unresolved_path("src/A.java", ["/view"])
+
+
+def test_nuclei_jsonl_carries_url_and_cwe(tmp_path: Path) -> None:
+    lines = [
+        {
+            "template-id": "http-missing-security-headers",
+            "matcher-name": "x-frame-options",
+            "matched-at": "http://127.0.0.1:9/",
+            "info": {
+                "name": "Missing headers",
+                "severity": "info",
+                "classification": {"cwe-id": ["cwe-693"]},
+            },
+        },
+        {"template-id": "tech-detect", "matched-at": "http://127.0.0.1:9/app", "info": {}},
+    ]
+    path = write(tmp_path, "r.jsonl", "\n".join(json.dumps(x) for x in lines) + "\n")
+    found = load_findings(path, OutputFormat.NUCLEI)
+    assert found[0].rule == "http-missing-security-headers:x-frame-options"
+    assert found[0].cwes == (693,) and found[0].url == "http://127.0.0.1:9/"
+    assert found[1].cwes == () and found[1].url.endswith("/app")
+    assert load_findings(write(tmp_path, "empty.jsonl", ""), OutputFormat.NUCLEI) == []
+    with pytest.raises(FindingsError, match="not a Nuclei result"):
+        load_findings(write(tmp_path, "bad.jsonl", "[1,2]\n"), OutputFormat.NUCLEI)
