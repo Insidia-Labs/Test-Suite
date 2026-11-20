@@ -86,6 +86,15 @@ status), `score.json`, `adjudication.jsonl` (findings that matched no case, for 
 person to review), the tool's logs and its output. `results/` and `.cache/` are
 git-ignored.
 
+```bash
+uv run itsuite scorecard                     # per-tool scorecard and comparison
+uv run itsuite adjudicate show <run-id>      # findings outside the answer key
+uv run itsuite adjudicate mark <run-id> 3 --verdict real --by <name> --note "..."
+uv run itsuite rescore --all                 # apply new decisions to every run
+uv run itsuite prepare creddata              # a target's own setup step, once
+uv run itsuite build-check xbow              # build every XBOW task with the pins
+```
+
 ## Layout
 
 ```

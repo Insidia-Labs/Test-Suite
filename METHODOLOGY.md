@@ -163,6 +163,14 @@ are not counted as true or false positives until someone decides. For the same
 reason, a key with no negative cases (real CVEs, Juice Shop) reports recall only.
 Its precision is shown as empty, not as a perfect 1.0.
 
+A person decides with `itsuite adjudicate mark <run> <index> --verdict real|not-real
+--by <name>`. The decision is written to `adjudications/<target>.yaml` in the repo,
+so it is reviewed and versioned like the rest of the suite. It is about a location
+and CWE in the target, not about the tool that reported it, so it applies to every
+tool's findings there. Scores show adjudicated findings in their own block (real,
+not real, pending) and never change the upstream key's numbers. Decisions proposed
+by an assistant say so in `by` and need a person's review.
+
 ### 1.10 How findings are matched
 
 - SARIF results of kind `pass`, `notApplicable` or `informational`, and suppressed

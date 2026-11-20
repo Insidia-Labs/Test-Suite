@@ -1,0 +1,13 @@
+target: vampi
+entries:
+- id: vampi-1
+  variant: '*'
+  task: ''
+  cwes: []
+  verdict: real
+  note: 'Werkzeug interactive debugger reachable at /console: app.py runs vuln_app.run(...,
+    debug=True) in both variants (not covered by VAmPI''s vulnerable switch). CWE-489/94.'
+  by: claude-code (proposed; needs a person's review)
+  date: '2026-11-20'
+  from_run: 20261120T001035Z-nuclei-vampi-096942
+  token: /console

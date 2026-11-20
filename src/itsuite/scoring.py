@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from itsuite import adjudication
 from itsuite.findings import Finding, FindingsError, load_findings, sarif_incomplete
 from itsuite.keys.base import AnswerKey, KeyStore, SealError
 from itsuite.keys.flags import flag_found
@@ -44,11 +45,16 @@ def summarize(outcomes: Sequence[CaseOutcome]) -> dict[str, Any]:
     }
 
 
-def write_adjudication(path: Path, findings: Sequence[Finding], indexes: Sequence[int]) -> None:
-    """Findings that match no case, for a person to label. Not counted either way."""
+def write_adjudication(
+    path: Path, findings: Sequence[Finding], indexes: Sequence[int], paths: Sequence[str] = ()
+) -> None:
+    """Findings that match no case, for a person to label. Not counted either way.
+    ``source_path`` is the finding's path in the target's own source."""
     with path.open("w", encoding="utf-8") as handle:
         for index in indexes:
-            handle.write(json.dumps({"index": index, **findings[index].to_dict()}) + "\n")
+            source = paths[index] if index < len(paths) else ""
+            row = {"index": index, **findings[index].to_dict(), "source_path": source}
+            handle.write(json.dumps(row) + "\n")
 
 
 def score_findings(
@@ -91,7 +97,9 @@ def score_challenges(key: AnswerKey, before: Sequence[str], after: Sequence[str]
     return summary
 
 
-def _score_body(run: Mapping[str, Any], run_dir: Path, key: AnswerKey) -> dict[str, Any]:
+def _score_body(
+    run: Mapping[str, Any], run_dir: Path, key: AnswerKey, root: Path
+) -> dict[str, Any]:
     if key.match == "flag":
         return score_flag(key, [run_dir / "out", run_dir / "stdout.log"])
     if key.match == "challenge":
@@ -103,7 +111,11 @@ def _score_body(run: Mapping[str, Any], run_dir: Path, key: AnswerKey) -> dict[s
     params = MatchParams(run["cwe_mode"], int(run["line_tolerance"]))
     path_map = load_path_map(Path(run.get("path_map") or run_dir / "path_map.json"))
     summary, result = score_findings(key, findings, params, path_map, run.get("roots", []))
-    write_adjudication(run_dir / "adjudication.jsonl", findings, result.unmatched)
+    write_adjudication(run_dir / "adjudication.jsonl", findings, result.unmatched, result.paths)
+    decisions = adjudication.applicable(adjudication.load(root, key.target), key.variant, key.task)
+    summary["adjudicated"] = adjudication.classify(
+        decisions, findings, result.unmatched, key.match, result.paths, params
+    )
     summary["tool_reported_incomplete"] = fmt == OutputFormat.SARIF and sarif_incomplete(output)
     return summary
 
@@ -114,7 +126,10 @@ HEAD_FIELDS = (
 )  # fmt: skip
 
 
-def score_run(run_dir: Path, store: KeyStore) -> dict[str, Any]:
+def score_run(run_dir: Path, store: KeyStore, root: Path | None = None) -> dict[str, Any]:
+    """Score one run. ``root`` is the suite root (for adjudications); by default the
+    folder above results/."""
+    root = root or run_dir.parent.parent
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     head = {k: run.get(k) for k in HEAD_FIELDS}
     if run["status"] not in SCORABLE:
@@ -122,7 +137,7 @@ def score_run(run_dir: Path, store: KeyStore) -> dict[str, Any]:
     else:
         try:
             key = store.load(str(run["key_digest"]), str(run["key_name"]))
-            score = {**head, "scored": True, **_score_body(run, run_dir, key)}
+            score = {**head, "scored": True, **_score_body(run, run_dir, key, root)}
         except SealError as exc:
             score = {**head, "scored": False, "status": "key-error", "reason": str(exc)}
         except FindingsError as exc:

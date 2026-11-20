@@ -44,6 +44,7 @@ class CaseOutcome:
 class MatchResult:
     outcomes: tuple[CaseOutcome, ...]
     unmatched: tuple[int, ...]
+    paths: tuple[str, ...] = ()  # each finding's path in target-source terms
 
 
 @lru_cache(maxsize=4096)
@@ -208,4 +209,4 @@ def match_findings(
         for c, h in zip(key.cases, hits, strict=True)
     )
     unmatched = tuple(i for i in range(len(findings)) if i not in used)
-    return MatchResult(outcomes, unmatched)
+    return MatchResult(outcomes, unmatched, tuple(paths))

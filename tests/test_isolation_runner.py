@@ -198,10 +198,17 @@ def test_egress_probe_that_cannot_run_is_an_error_not_blocked() -> None:
 
 
 def test_free_port_and_wait_http_guard() -> None:
+    import socket
+
     assert 0 < docker_ops.free_port() < 65536
     with pytest.raises(ValueError):
         docker_ops.wait_http("http://example.com")
-    assert not docker_ops.wait_http(f"http://127.0.0.1:{docker_ops.free_port()}/", 0.3, 0.1)
+    # Keep the port bound but not listening, so nothing else can take it during the check
+    # and every connection is refused.
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as held:
+        held.bind(("127.0.0.1", 0))
+        port = held.getsockname()[1]
+        assert not docker_ops.wait_http(f"http://127.0.0.1:{port}/", 0.3, 0.1)
 
 
 def test_render_command_fills_each_argument() -> None:

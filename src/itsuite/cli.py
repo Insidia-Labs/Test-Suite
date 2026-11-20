@@ -10,7 +10,16 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from itsuite import FREEZE_DATE, __version__, adapter_check, images, live, scorecard, tools
+from itsuite import (
+    FREEZE_DATE,
+    __version__,
+    adapter_check,
+    adjudication,
+    images,
+    live,
+    scorecard,
+    tools,
+)
 from itsuite import prepare as prepare_step
 from itsuite.catalog import Catalog, load_catalog
 from itsuite.fetch import FetchError, fetch
@@ -20,6 +29,7 @@ from itsuite.models import CatalogError, Integration, Mode, Profile
 from itsuite.orchestrate import RunError, RunRequest, SuitePaths, docker_available
 from itsuite.orchestrate import run as run_one
 from itsuite.report import load_scores, markdown
+from itsuite.scoring import score_run
 from itsuite.upstream import import_agentdojo, import_jsonl, summarize
 from itsuite.validate import validate
 
@@ -304,6 +314,41 @@ def cmd_scorecard(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths)
     return 0
 
 
+def _run_dir(paths: SuitePaths, run_id: str) -> Path:
+    run_dir = paths.results / run_id
+    if not (run_dir / "run.json").exists():
+        raise RunError(f"no run {run_id} under {paths.results}")
+    return run_dir
+
+
+def cmd_adjudicate(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
+    run_dir = _run_dir(paths, args.run)
+    if args.action == "mark":
+        ids = adjudication.mark(paths.root, run_dir, args.index, args.verdict, args.note or "",
+                                args.by or "", args.any_variant)  # fmt: skip
+        print(f"recorded {', '.join(ids)}; run `itsuite rescore --all` to apply")
+        return 0
+    rows = adjudication.pending_rows(run_dir)
+    for row in rows:
+        where = row.get("source_path") or row.get("url") or row.get("path")
+        line = f":{row['start_line']}" if row.get("start_line") else ""
+        print(f"[{row['index']}] {row['rule'][:50]}  cwe={row['cwes']}  {where}{line}")
+        if row.get("message"):
+            print(f"      {row['message'][:110]}")
+    print(f"\n{len(rows)} unmatched findings")
+    return 0
+
+
+def cmd_rescore(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
+    dirs = ([p.parent for p in sorted(paths.results.glob("*/run.json"))] if args.all
+            else [_run_dir(paths, r) for r in args.runs])  # fmt: skip
+    for run_dir in dirs:
+        score = score_run(run_dir, paths.keys, paths.root)
+        print(f"{run_dir.name}: {'scored' if score.get('scored') else 'not scored'}; "
+              f"adjudicated {score.get('adjudicated')}")  # fmt: skip
+    return 0
+
+
 def cmd_doctor(args: argparse.Namespace, catalog: Catalog, paths: SuitePaths) -> int:
     print(f"itsuite {__version__} (frozen {FREEZE_DATE}), root {paths.root}")
     print(f"answer-key plugins: {', '.join(sorted(REGISTRY))}")
@@ -361,6 +406,17 @@ def build_parser() -> argparse.ArgumentParser:
     ca.add_argument("--source", help="folder to scan (source modes)")
     ca.add_argument("--url", help="URL to scan (live modes)")
     ca.add_argument("--timeout", type=int, default=1800)
+    ad = sub.add_parser("adjudicate", help="show or decide a run's unmatched findings")
+    ad.add_argument("action", choices=["show", "mark"])
+    ad.add_argument("run")
+    ad.add_argument("index", type=int, nargs="*")
+    ad.add_argument("--verdict", choices=adjudication.VERDICTS)
+    ad.add_argument("--note")
+    ad.add_argument("--by", help="who decided")
+    ad.add_argument("--any-variant", action="store_true", help="applies to every variant")
+    rs = sub.add_parser("rescore", help="score runs again (after new adjudications)")
+    rs.add_argument("runs", nargs="*")
+    rs.add_argument("--all", action="store_true")
     sc = sub.add_parser("scorecard", help="per-tool scorecard and comparison")
     sc.add_argument("--by", choices=scorecard.GROUPINGS, default="capability")
     sc.add_argument("--results")
@@ -385,6 +441,8 @@ COMMANDS = {
     "prepare": cmd_prepare,
     "build-check": cmd_build_check,
     "scorecard": cmd_scorecard,
+    "adjudicate": cmd_adjudicate,
+    "rescore": cmd_rescore,
 }
 
 

@@ -399,7 +399,7 @@ def run(request: RunRequest, paths: SuitePaths, keep_view: bool = False) -> dict
         "path_map": str(paths.private(run_dir.name) / "path_map.json"),
     }
     _record(request, prep, run_dir, status, result, observations, files)
-    score = score_run(run_dir, paths.keys)
+    score = score_run(run_dir, paths.keys, paths.root)
     if view_dir and not keep_view:
         shutil.rmtree(view_dir, ignore_errors=True)
     return score

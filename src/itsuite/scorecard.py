@@ -34,6 +34,7 @@ class Cell:
     recalls: list[float] = field(default_factory=list)
     cost_usd: float = 0.0
     has_cost: bool = False
+    adjudicated: dict[str, int] = field(default_factory=dict)
 
 
 def _confusion(score: Mapping[str, Any]) -> Confusion:
@@ -94,6 +95,8 @@ def _add(cell: Cell, score: Mapping[str, Any], recalls: Sequence[float]) -> None
         cell.with_negatives = cell.with_negatives + confusion
     if len(recalls) > 1:
         cell.recalls += [min(recalls), max(recalls)]
+    for name, count in (score.get("adjudicated") or {}).items():
+        cell.adjudicated[name] = cell.adjudicated.get(name, 0) + int(count)
     cost = (score.get("cost") or {}).get("usd")
     if isinstance(cost, (int, float)):
         cell.cost_usd += float(cost)
@@ -135,16 +138,22 @@ def cell_row(group: str, cell: Cell) -> list[str]:
         f"{min(cell.recalls) * 100:.0f}-{max(cell.recalls) * 100:.0f}%" if cell.recalls else "-"
     )
     cost = f"${cell.cost_usd:.2f}" if cell.has_cost else "-"
+    adj = cell.adjudicated
+    outside = (
+        f"{adj.get('real', 0)}/{adj.get('not_real', 0)}/{adj.get('pending', 0)}" if adj else "-"
+    )
     per_tp = f"${cell.cost_usd / allc.tp:.2f}" if cell.has_cost and allc.tp else "-"
     return [
         group, str(cell.runs), str(cell.unscored), f"{cell.sealed}/{cell.runs}",
         f"{allc.tp}/{allc.tp + allc.fn}", _pct(allc.recall) + _ci(allc.tp, allc.tp + allc.fn),
-        _pct(neg.precision) + _ci(neg.tp, neg.tp + neg.fp), _pct(neg.fpr), spread, cost, per_tp,
+        _pct(neg.precision) + _ci(neg.tp, neg.tp + neg.fp), _pct(neg.fpr), spread, outside,
+        cost, per_tp,
     ]  # fmt: skip
 
 
 HEADER = ["group", "runs", "unscored", "sealed", "found", "recall (95% CI)",
-          "precision (95% CI)", "FP rate", "repeat recall", "cost", "cost/TP"]  # fmt: skip
+          "precision (95% CI)", "FP rate", "repeat recall", "outside key real/not/pending",
+          "cost", "cost/TP"]  # fmt: skip
 
 
 def _table(rows: Sequence[Sequence[str]]) -> list[str]:
