@@ -1,0 +1,15 @@
+id: airtbench
+name: AIRTBench
+level: L4
+capabilities: [llm-app, ctf]
+source: {kind: git, url: https://github.com/dreadnode/AIRTBench-Code.git, commit: 36fd5cdfab118be4bfaf2c370dc91ff7ab2bb8ac, ref: main@2026-11-19}
+license: Apache-2.0
+homepage: https://github.com/dreadnode/AIRTBench-Code
+contamination: low
+answer_key: AI red-teaming challenges (prompt injection, model evasion, data extraction), each solved by submitting a flag.
+evaluations:
+  - {mode: ctf, key: upstream-jsonl, integration: bridge}
+notes: >-
+  The challenges run on Dreadnode's hosted Crucible platform, which breaks the suite's
+  no-hosted-targets rule. Results are reported in their own section and never in sealed
+  totals.

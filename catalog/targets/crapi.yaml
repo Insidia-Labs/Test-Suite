@@ -1,0 +1,14 @@
+id: crapi
+name: OWASP crAPI
+level: L1
+capabilities: [api, microservices]
+source: {kind: git, url: https://github.com/OWASP/crAPI.git, commit: 700f03d12a392d9e408260b4beae72ed02a4a1a4, ref: v1.1.6}
+license: Apache-2.0
+homepage: https://owasp.org/www-project-crapi/
+contamination: medium
+answer_key: docs/challenges.md (BOLA, broken authentication, excessive data exposure, rate limiting, BFLA, mass assignment, SSRF, NoSQL and SQL injection, unauthenticated access, JWT).
+evaluations:
+  - mode: dast
+    key: documented-list
+    integration: planned
+notes: Pinned to the v1.1.6 release because the default branch is develop.

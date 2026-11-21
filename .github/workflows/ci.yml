@@ -1,0 +1,71 @@
+# Checks on every push and pull request; once a week, whether every pin still
+# resolves upstream and the CWE families still match MITRE's latest release.
+# Actions are pinned by commit (tags can move), and the token can only read.
+name: ci
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 5 * * 1"  # Mondays
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.14"]  # the oldest supported, and the one development uses
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          version: "0.9.24"
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: uv sync --locked --extra dev
+      - name: Lint
+        run: uv run ruff check src tests scripts
+      - name: Format
+        run: uv run ruff format --check src tests scripts
+      - name: Types
+        run: uv run mypy src
+      - name: Tests (coverage must stay at 80% or more)
+        run: uv run pytest -q
+      - name: Catalog
+        run: uv run itsuite validate
+      - name: Lock file matches the pins
+        run: uv run itsuite lock --check
+
+  upstream:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          version: "0.9.24"
+          python-version: "3.14"
+      - name: Install
+        run: uv sync --locked
+      - name: Every pin still resolves upstream
+        run: uv run itsuite lock --online
+      - name: CWE families match MITRE's latest release
+        run: |
+          curl -sSfL --max-time 300 -o "$RUNNER_TEMP/cwec.xml.zip" https://cwe.mitre.org/data/xml/cwec_latest.xml.zip
+          uv run python scripts/check_cwe_families.py "$RUNNER_TEMP/cwec.xml.zip"

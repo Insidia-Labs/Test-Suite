@@ -1,0 +1,11 @@
+id: injecagent
+name: InjecAgent
+level: L3
+capabilities: [agent, prompt-injection]
+source: {kind: git, url: https://github.com/uiuc-kang-lab/InjecAgent.git, commit: f19c9f2c79a41046eb13c03c51a24c567a8ffa07, ref: main@2026-11-19}
+license: MIT
+homepage: https://github.com/uiuc-kang-lab/InjecAgent
+contamination: medium
+answer_key: Indirect prompt-injection cases for tool-using agents (direct harm and data stealing), graded by InjecAgent's evaluator.
+evaluations:
+  - {mode: agent-attack, key: upstream-jsonl, integration: bridge}

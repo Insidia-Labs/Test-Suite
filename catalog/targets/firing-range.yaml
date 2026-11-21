@@ -1,0 +1,13 @@
+id: firing-range
+name: Google Firing Range
+level: L2
+capabilities: [web]
+source: {kind: git, url: https://github.com/google/firing-range.git, commit: 4f991a6418b07a66cd63006f4a2bec27c84b72f4, ref: master (archived 2020)}
+license: Apache-2.0
+homepage: https://github.com/google/firing-range
+contamination: medium
+archived: true
+answer_key: Each test page is one XSS or other client-side case; the page path names the case.
+evaluations:
+  - {mode: dast, key: documented-list, integration: planned}
+notes: Archived App Engine app; needs a local runtime. Google's hosted copy doesn't count (hosted targets are out).

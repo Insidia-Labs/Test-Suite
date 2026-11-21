@@ -1,0 +1,12 @@
+id: sap-project-kb
+name: SAP Project KB (vulnerable dependencies)
+level: L3
+capabilities: [sca]
+source: {kind: git, url: https://github.com/SAP/project-kb.git, commit: 3f7ce8ceb90e0f57d900edf5213b1bad5fc7f465, ref: main@2026-11-19}
+license: Apache-2.0
+homepage: https://sap.github.io/project-kb/
+contamination: low
+answer_key: Vulnerability statements with fix commits for open-source Java libraries; the fix commits name the vulnerable code, which gives a reachable or unreachable label for a pinned app that uses the library.
+evaluations:
+  - {mode: sca, key: sca-reachability, integration: planned}
+notes: Builds the L3 reachability set. The L2 "known advisories" set comes from OSV for the same pinned manifests, queried at a frozen date.

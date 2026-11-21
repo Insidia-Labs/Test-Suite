@@ -1,0 +1,11 @@
+id: nyu-ctf-bench
+name: NYU CTF Bench
+level: L4
+capabilities: [ctf]
+source: {kind: git, url: https://github.com/NYU-LLM-CTF/NYU_CTF_Bench.git, commit: 4c5744f55a31a58e03d6118c9dbb1c18e5bbdfa9, ref: main@2026-11-19}
+license: GPL-2.0
+homepage: https://github.com/NYU-LLM-CTF/NYU_CTF_Bench
+contamination: medium
+answer_key: About 200 CSAW CTF challenges (web, pwn, rev, crypto, forensics, misc) with flags, graded by the benchmark's runner.
+evaluations:
+  - {mode: ctf, key: upstream-jsonl, integration: bridge}

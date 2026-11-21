@@ -1,0 +1,10 @@
+# DVMCP built from the pinned (and, per run, flag-rotated) source. Upstream's compose
+# uses a fixed container_name and publishes the ports; the suite does neither.
+services:
+  dvmcp:
+    build: .
+    environment:
+      - DVMCP_ENV=docker
+      - DVMCP_ROLE=all
+      - DVMCP_MCP_POOL_SIZE=0
+      - PYTHONUNBUFFERED=1

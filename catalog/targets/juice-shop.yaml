@@ -1,0 +1,51 @@
+id: juice-shop
+name: OWASP Juice Shop
+level: L0
+capabilities: [web, api]
+source:
+  kind: git
+  url: https://github.com/juice-shop/juice-shop.git
+  commit: 266448aba68cd8ba5915f526a128da4fa7bc3f9f
+  ref: v20.4.0
+license: MIT
+homepage: https://owasp.org/www-project-juice-shop/
+contamination: high
+answer_key: >-
+  Live: the app's own /api/Challenges solved flags, read before and after the run
+  (challenges disabled in Docker are left out). Source: vuln-code-snippet vuln-line
+  markers in Juice Shop's code, one case per challenge key.
+evaluations:
+  - mode: dast
+    key: juice-shop-challenges
+    integration: native
+    notes: Measures exploitation (challenges solved), not reporting.
+  - mode: sast
+    key: juice-shop-markers
+    integration: native
+    cwe_mode: any
+    line_tolerance: 2
+    notes: Markers carry no CWE, so any finding on a marked line counts.
+runtime:
+  compose: suite:targets/juice-shop/compose.yml
+  expose: [{service: juice-shop, port: 3000}]
+view:
+  exclude:
+    - SOLUTIONS.md
+    - HALL_OF_FAME.md
+    - data/static/codefixes
+    - data/static/challenges.yml
+    - test
+    - rsn
+    - threat-model.json
+    - cypress.config.ts
+    - docker-compose.test.yml
+    - .github
+  strip:
+    - '\s*//\s*vuln-code-snippet\b.*$'
+    - '\s*#\s*vuln-code-snippet\b.*$'
+    - '<!--\s*vuln-code-snippet\b.*?-->'
+    - '/\*\s*vuln-code-snippet\b.*?\*/'
+notes: >-
+  The live app runs the official v20.4.0 image (pinned by digest); the answer key is
+  read from the source at the same tag. The source view drops solutions, code-fix
+  catalogs, the exploit test suites and the challenge list, and strips the markers.

@@ -1,0 +1,20 @@
+id: agentdojo
+name: AgentDojo
+level: L3
+capabilities: [agent, prompt-injection]
+source: {kind: git, url: https://github.com/ethz-spylab/agentdojo.git, commit: 089ed468cf3ed0322acc66b0211f26d9d90dbf60, ref: main@2026-11-19}
+license: MIT
+homepage: https://agentdojo.spylab.ai
+contamination: medium
+answer_key: AgentDojo's own security() check per (user task, injection task) pair, in the workspace, Slack, travel and banking suites. security true = the injection succeeded.
+evaluations:
+  - mode: agent-attack
+    key: agentdojo
+    integration: bridge
+    variants:
+      - {name: no-defense}
+      - {name: tool_filter}
+      - {name: transformers_pi_detector}
+      - {name: spotlighting_with_delimiting}
+      - {name: repeat_user_prompt}
+    notes: The tool under test plugs in as an AgentDojo attack; compare its success rate with AgentDojo's built-in attacks on the same model and defense.

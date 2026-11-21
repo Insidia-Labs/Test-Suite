@@ -1,0 +1,48 @@
+id: damn-vulnerable-mcp-server
+name: Damn Vulnerable MCP Server
+level: L1
+capabilities: [mcp, agent]
+source: {kind: git, url: https://github.com/harishsg993010/damn-vulnerable-MCP-server.git, commit: cdc4c6b5b76353203effcb26058e50fa6067d3a6, ref: main@2026-11-19}
+license: none declared (use locally; don't redistribute)
+homepage: https://github.com/harishsg993010/damn-vulnerable-MCP-server
+contamination: medium
+answer_key: >-
+  Fifteen MCP challenges (prompt injection, tool poisoning, excessive permissions, rug
+  pull, tool shadowing, indirect injection, token theft, code execution, remote access,
+  multi-vector, JWT forgery, identity override, workflow IDOR, plugin poisoning,
+  dependency confusion), each solved by obtaining its flag. The flags are read from the
+  dashboard's FLAGS table and rotated to fresh random values on every run.
+evaluations:
+  - mode: agent-attack
+    key: dvmcp-flags
+    integration: native
+    notes: The tool gets every MCP endpoint in input/endpoints.json (one per challenge, streamable HTTP).
+  - {mode: sast, key: documented-list, integration: planned}
+runtime:
+  compose: suite:targets/damn-vulnerable-mcp-server/compose.yml
+  expose:
+    - {service: dvmcp, port: 9001}
+    - {service: dvmcp, port: 9002}
+    - {service: dvmcp, port: 9003}
+    - {service: dvmcp, port: 9004}
+    - {service: dvmcp, port: 9005}
+    - {service: dvmcp, port: 9006}
+    - {service: dvmcp, port: 9007}
+    - {service: dvmcp, port: 9008}
+    - {service: dvmcp, port: 9009}
+    - {service: dvmcp, port: 9010}
+    - {service: dvmcp, port: 9011}
+    - {service: dvmcp, port: 9012}
+    - {service: dvmcp, port: 9013}
+    - {service: dvmcp, port: 9014}
+    - {service: dvmcp, port: 9015}
+  base_path: /mcp
+  base_images: suite:targets/damn-vulnerable-mcp-server/base-images.yaml
+view:
+  exclude: [solutions, docs, dashboard, tests, todo.md, README.md, docker-setup.md]
+notes: >-
+  The published flags are in the repository (and the solutions folder), so they would
+  score for a tool that simply remembers them. Each run copies the source, replaces every
+  published flag with a fresh random one of the same DVMCP{...} form, and builds from the
+  copy; the answer key holds that run's flags. The source view drops solutions, docs, the
+  dashboard (its challenge hints include exploit payloads) and tests.

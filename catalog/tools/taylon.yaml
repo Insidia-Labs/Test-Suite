@@ -1,0 +1,11 @@
+id: taylon
+name: Insidia Taylon
+role: under-test
+version: unreleased
+source: https://github.com/Rushi-Balapure/Insidia-Labs-Taylon
+license: GPL-3.0
+status: not-yet-available
+modes: {}
+notes: >-
+  Design stage. Expected modes: sast (rules and taint), secrets, sca (with reachability)
+  and iac, all through `taylon ... --format sarif`.

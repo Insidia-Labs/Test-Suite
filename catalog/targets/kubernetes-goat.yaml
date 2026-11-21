@@ -1,0 +1,12 @@
+id: kubernetes-goat
+name: Kubernetes Goat
+level: L1
+capabilities: [iac, kubernetes, containers]
+source: {kind: git, url: https://github.com/madhuakula/kubernetes-goat.git, commit: 723a0db478f050d173d23b4ce5044b65bce0bdd0, ref: master@2026-11-19}
+license: MIT
+homepage: https://madhuakula.com/kubernetes-goat/
+contamination: medium
+answer_key: One scenario per misconfiguration, each documented in guide/docs/scenarios.
+evaluations:
+  - {mode: iac, key: documented-list, integration: planned}
+notes: Static manifest scan only in this suite; the live scenarios need a Kubernetes cluster.

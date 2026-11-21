@@ -1,0 +1,14 @@
+target: dvwa
+entries:
+- id: dvwa-1
+  variant: '*'
+  task: ''
+  cwes:
+  - 798
+  verdict: real
+  note: DVWA's documented default account admin/password works (CWE-798/1392). Real
+    at every security level.
+  by: claude-code (proposed; needs a person's review)
+  date: '2026-11-20'
+  from_run: 20261120T002758Z-nuclei-dvwa-d40179
+  token: /index.php

@@ -1,0 +1,16 @@
+id: gitleaks
+name: Gitleaks
+role: baseline
+version: 8.30.1
+source: https://github.com/gitleaks/gitleaks
+license: MIT
+modes:
+  secrets:
+    command: bash {adapter_dir}/secrets.sh {source_dir} {out_dir}
+    output: sarif
+install:
+  kind: archive
+  url: https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+  sha256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+  binary: gitleaks
+verified: true  # 2026-11-20: secrets checked on WrongSecrets (77 findings parsed)

@@ -1,0 +1,12 @@
+id: nodegoat
+name: OWASP NodeGoat
+level: L1
+capabilities: [web, source]
+source: {kind: git, url: https://github.com/OWASP/NodeGoat.git, commit: c5cb68a7084e4ae7dcc60e6a98768720a81841e8, ref: master@2026-11-19}
+license: Apache-2.0
+homepage: https://github.com/OWASP/NodeGoat
+contamination: high
+answer_key: The tutorial (app/views/tutorial) names the file and code for each OWASP Top 10 item.
+evaluations:
+  - {mode: sast, key: documented-list, integration: planned}
+  - {mode: dast, key: documented-list, integration: planned}

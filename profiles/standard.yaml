@@ -1,0 +1,20 @@
+id: standard
+description: >-
+  Every native L0-L2 evaluation plus fixed samples of the L3 sets. A few hours per tool.
+  Samples use a fixed seed, so every tool gets the same tasks.
+wall_seconds: 3600
+repeat: 1
+budget_usd: 25
+budget_tokens: 20000000
+entries:
+  - {target: dvwa, mode: dast}
+  - {target: vampi, mode: dast}
+  - {target: juice-shop, mode: dast}
+  - {target: juice-shop, mode: sast}
+  - {target: owasp-benchmark-java, mode: sast}
+  - {target: owasp-benchmark-python, mode: sast}
+  - {target: castle, mode: sast}
+  - {target: creddata, mode: secrets}
+  - {target: cwe-bench-java, mode: sast, sample: 20, seed: 7}
+  - {target: ossf-cve-benchmark, mode: sast, sample: 30, seed: 7}
+  - {target: xbow, mode: ctf, sample: 25, seed: 7}

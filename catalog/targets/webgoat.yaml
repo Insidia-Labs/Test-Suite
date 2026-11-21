@@ -1,0 +1,14 @@
+id: webgoat
+name: OWASP WebGoat
+level: L1
+capabilities: [web]
+source: {kind: git, url: https://github.com/WebGoat/WebGoat.git, commit: 4e98f1cbbf896fdd06edcc9930515ebe0ade7c69, ref: main@2026-11-19}
+license: GPL-2.0-or-later
+homepage: https://owasp.org/www-project-webgoat/
+contamination: high
+answer_key: Lesson catalog; each lesson's assignment endpoints and completion state (the app records solved assignments per user).
+evaluations:
+  - mode: dast
+    key: documented-list
+    integration: planned
+    notes: Can be scored like Juice Shop from the app's own lesson-progress API once a reader for it exists.

@@ -1,0 +1,38 @@
+id: owasp-benchmark-java
+name: OWASP Benchmark (Java)
+level: L2
+capabilities: [web, source]
+source: {kind: git, url: https://github.com/OWASP-Benchmark/BenchmarkJava.git, commit: c6717ea295433deba1b20bb3127614833d005462, ref: master@2026-11-19}
+license: GPL-2.0
+homepage: https://owasp.org/www-project-benchmark/
+contamination: high
+answer_key: expectedresults-1.2.csv, 2,740 test cases in 11 CWE categories; about half are false-positive traps. Scored per category as TPR − FPR and averaged, like the official scorecard.
+evaluations:
+  - mode: sast
+    key: owasp-benchmark
+    integration: native
+    cwe_mode: family
+    params: {expected_results: expectedresults-1.2.csv}
+  - mode: dast
+    key: owasp-benchmark
+    integration: planned
+    cwe_mode: family
+    params: {expected_results: expectedresults-1.2.csv}
+    notes: The key is ready; the live app (Maven + HTTPS on 8443) still needs a pinned container runtime.
+view:
+  exclude:
+    - expectedresults-*.csv
+    - results
+    - scorecard
+    - tools
+    - VMs
+    - scripts
+    - createScorecards.*
+    - createAnonScorecards.sh
+    - "*.URL"
+    - .github
+    - .devcontainer
+notes: >-
+  The view drops the answer file, other tools' published results and the scorecard
+  tooling. Test URLs and file names include the category (e.g. pathtraver-00); that is
+  upstream's design and every tool sees it.

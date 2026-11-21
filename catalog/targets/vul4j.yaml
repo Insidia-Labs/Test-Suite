@@ -1,0 +1,11 @@
+id: vul4j
+name: Vul4J
+level: L3
+capabilities: [source, fix]
+source: {kind: git, url: https://github.com/tuhh-softsec/vul4j.git, commit: bca934d14bad4743eb27c944e3365cdeae8d9764, ref: main@2026-11-19}
+license: GPL-3.0
+homepage: https://github.com/tuhh-softsec/vul4j
+contamination: medium
+answer_key: About 260 reproducible Java vulnerabilities with proof-of-vulnerability tests (dataset/vul4j_dataset.csv). A fix passes when the PoV test passes and the project's other tests still pass.
+evaluations:
+  - {mode: fix, key: upstream-jsonl, integration: bridge}

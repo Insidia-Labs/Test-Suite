@@ -1,0 +1,4 @@
+# The official Juice Shop image at the same tag as the pinned source (v20.4.0).
+services:
+  juice-shop:
+    image: docker.io/bkimminich/juice-shop:v20.4.0@sha256:9bbaecc41791f00b002bc65931cc5ff355fbdb941fa72b06558c18dace43197b

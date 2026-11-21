@@ -1,0 +1,17 @@
+# DVWA built from the pinned checkout (the project directory is the DVWA source).
+# Upstream's compose.yml pulls ghcr.io/digininja/dvwa:latest, which would not be pinned.
+# The database credentials are DVWA's own published defaults for this local test app.
+services:
+  dvwa:
+    build: .
+    environment:
+      - DB_SERVER=db
+    depends_on:
+      - db
+  db:
+    image: docker.io/library/mariadb:10.11.19@sha256:7d829180b5b2a9ba74f6242876ab401a0d7dd338a807e522ef92bc9698760f20
+    environment:
+      - MYSQL_ROOT_PASSWORD=dvwa
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd

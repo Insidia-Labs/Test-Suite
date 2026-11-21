@@ -1,0 +1,11 @@
+id: go-vulndb
+name: Go vulnerability database
+level: L3
+capabilities: [sca]
+source: {kind: git, url: https://github.com/golang/vulndb.git, commit: 08d4efaf08a5f66964db742ab4c3b4bacabb274e, ref: master@2026-11-19}
+license: BSD-3-Clause (code), CC-BY-4.0 (data)
+homepage: https://pkg.go.dev/vuln/
+contamination: low
+answer_key: Each report lists the vulnerable packages and symbols, so whether a pinned Go program calls them gives a reachability label.
+evaluations:
+  - {mode: sca, key: sca-reachability, integration: planned}

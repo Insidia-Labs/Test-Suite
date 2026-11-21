@@ -1,0 +1,11 @@
+id: github-actions-goat
+name: GitHub Actions Goat
+level: L1
+capabilities: [ci]
+source: {kind: git, url: https://github.com/step-security/github-actions-goat.git, commit: 4da23c8602b4589bacdf7de77240113e02cdb884, ref: main@2026-11-19}
+license: Apache-2.0
+homepage: https://github.com/step-security/github-actions-goat
+contamination: low
+answer_key: Vulnerable workflow patterns documented per scenario in docs/.
+evaluations:
+  - {mode: iac, key: documented-list, integration: planned}

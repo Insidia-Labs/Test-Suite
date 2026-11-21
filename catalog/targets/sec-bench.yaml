@@ -1,0 +1,12 @@
+id: sec-bench
+name: SEC-bench
+level: L3
+capabilities: [source, exploit, fix]
+source: {kind: git, url: https://github.com/SEC-bench/SEC-bench.git, commit: 31eb43485a3de47da260be0f978528b1f2314415, ref: main@2026-01-27}
+license: MIT
+homepage: https://github.com/SEC-bench/SEC-bench
+contamination: low
+answer_key: Real CVEs in C/C++ projects with sanitizer-verified proof-of-concept and patch tasks.
+evaluations:
+  - {mode: exploit, key: upstream-jsonl, integration: bridge}
+  - {mode: fix, key: upstream-jsonl, integration: bridge}

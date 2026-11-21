@@ -1,0 +1,12 @@
+id: bipia
+name: BIPIA
+level: L3
+capabilities: [llm-app, prompt-injection]
+source: {kind: git, url: https://github.com/microsoft/BIPIA.git, commit: a004b69ec0dd446e0afd461d98cb5e96e120a5d0, ref: main (archived)}
+license: MIT
+homepage: https://github.com/microsoft/BIPIA
+contamination: medium
+archived: true
+answer_key: Indirect prompt-injection attacks embedded in email, web, table, code and summary tasks, graded by BIPIA's evaluator.
+evaluations:
+  - {mode: agent-attack, key: upstream-jsonl, integration: bridge}

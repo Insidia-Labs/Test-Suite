@@ -1,0 +1,17 @@
+id: nuclei
+name: Nuclei
+role: baseline
+version: 3.11.1 (templates v10.5.2)
+source: https://github.com/projectdiscovery/nuclei
+license: MIT
+modes:
+  dast:
+    command: bash {adapter_dir}/dast.sh {target_url} {out_dir}
+    output: nuclei-jsonl
+    output_file: results.jsonl
+install:
+  kind: archive
+  url: https://github.com/projectdiscovery/nuclei/releases/download/v3.11.1/nuclei_3.11.1_linux_amd64.zip
+  sha256: ea63d4ae232808cd7c6bc00d0142428e231fab59dae01042246097d195835ab6
+  binary: nuclei
+verified: true  # 2026-11-20: dast scored on VAmPI (both variants) and DVWA (low, impossible)

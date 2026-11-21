@@ -1,0 +1,18 @@
+id: trufflehog
+name: TruffleHog
+role: baseline
+version: 3.99.9
+source: https://github.com/trufflesecurity/trufflehog
+license: AGPL-3.0
+modes:
+  secrets:
+    command: bash {adapter_dir}/secrets.sh {source_dir} {out_dir}
+    output: trufflehog-jsonl
+    output_file: results.jsonl
+notes: Verification is off, so found secrets are never sent to the services they belong to.
+install:
+  kind: archive
+  url: https://github.com/trufflesecurity/trufflehog/releases/download/v3.99.9/trufflehog_3.99.9_linux_amd64.tar.gz
+  sha256: 12050095c8063bf4d34f9f6cbce6ba9fa8d0deea9d503d0570364feba093658e
+  binary: trufflehog
+verified: true  # 2026-11-20: secrets checked on WrongSecrets (47 findings parsed)

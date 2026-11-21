@@ -1,0 +1,14 @@
+id: smoke
+description: >-
+  L0 sanity pass, about 15 minutes for a fast tool. Each vulnerable set comes with its
+  clean control. Not a benchmark result; use it to check a tool and its adapter work.
+wall_seconds: 900
+repeat: 1
+budget_usd: 2
+budget_tokens: 2000000
+entries:
+  - {target: dvwa, mode: dast, variants: [low, impossible]}
+  - {target: vampi, mode: dast, variants: [vulnerable, clean]}
+  - {target: juice-shop, mode: sast}
+  - {target: castle, mode: sast}
+  - {target: xbow, mode: ctf, sample: 3, seed: 1}

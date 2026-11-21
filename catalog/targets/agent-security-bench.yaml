@@ -1,0 +1,11 @@
+id: agent-security-bench
+name: Agent Security Bench (ASB)
+level: L3
+capabilities: [agent, prompt-injection, memory]
+source: {kind: git, url: https://github.com/agiresearch/ASB.git, commit: 544540ff0788998072f7df463056fd17e62cc9f4, ref: main@2026-11-19}
+license: MIT
+homepage: https://github.com/agiresearch/ASB
+contamination: medium
+answer_key: Attack success per scenario (direct and indirect injection, memory poisoning, plan-of-thought backdoor), graded by ASB.
+evaluations:
+  - {mode: agent-attack, key: upstream-jsonl, integration: bridge}

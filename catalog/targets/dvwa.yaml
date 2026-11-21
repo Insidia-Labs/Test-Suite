@@ -1,0 +1,35 @@
+id: dvwa
+name: Damn Vulnerable Web Application
+level: L0
+capabilities: [web]
+source:
+  kind: git
+  url: https://github.com/digininja/DVWA.git
+  commit: 502ac150ce37c20ca6e04cab7c5ca959f315f2d0
+  ref: master@2026-11-19
+license: GPL-3.0
+homepage: https://github.com/digininja/DVWA
+contamination: high
+answer_key: >-
+  One case per module under vulnerabilities/. DVWA documents low, medium and high as
+  vulnerable and impossible as the secure reference. Module CWEs come from the module
+  titles (src/itsuite/keys/dvwa.py).
+evaluations:
+  - mode: dast
+    key: dvwa-modules
+    integration: native
+    cwe_mode: family
+    variants:
+      - {name: low, positive: true}
+      - {name: medium, positive: true}
+      - {name: high, positive: true}
+      - {name: impossible, positive: false}
+runtime:
+  compose: suite:targets/dvwa/compose.yml
+  expose: [{service: dvwa, port: 80}]
+  setup: targets/dvwa/setup.sh
+  base_path: /
+notes: >-
+  Upstream compose.yml pulls ghcr.io/digininja/dvwa:latest; the suite builds from the
+  pinned checkout instead. setup.sh creates the database, logs in with DVWA's documented
+  default account and sets the level; the session is handed to the tool in auth.json.

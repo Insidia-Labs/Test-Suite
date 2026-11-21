@@ -1,0 +1,33 @@
+id: creddata
+name: Samsung CredData
+level: L2
+capabilities: [secrets]
+source: {kind: git, url: https://github.com/Samsung/CredData.git, commit: 2faad4f03c32c3ff1fe3e7d129fa60913b475ba4, ref: main@2026-11-19}
+license: Apache-2.0
+homepage: https://github.com/Samsung/CredData
+contamination: low
+answer_key: meta/*.csv labels each candidate line T (real credential) or F (not one), with file and line range.
+evaluations:
+  - mode: secrets
+    key: creddata
+    integration: native
+    cwe_mode: any
+    params:
+      requires_paths: [data]
+view:
+  include: [data]
+prepare:
+  image: python:3.11-slim-bookworm@sha256:a83ba18aef0f865b1a4a611c2cf460fe446f2795673bbb9fe43be570439e3b39
+  command: >-
+    apt-get update -qq && apt-get install -y -qq --no-install-recommends git >/dev/null &&
+    pip install -q --root-user-action=ignore -r requirements.txt &&
+    python download_data.py --data_dir data --jobs 8
+  outputs: [data]
+  cleanup: [tmp]
+  network: true
+notes: >-
+  The scanned files come from CredData's own download_data.py, which clones the
+  labelled repositories at fixed commits and obfuscates real secrets. Run it once with
+  `itsuite prepare creddata` (in a pinned Python 3.11 container, on a copy of the
+  checkout); the harness checks the metadata came out unchanged and refuses to run until
+  it has been prepared.

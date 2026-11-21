@@ -1,0 +1,21 @@
+id: full
+description: >-
+  Every native evaluation and every task, three repeats (for the variance of LLM
+  tools). Days of wall time and real token spend. Bridge benchmarks run on their own
+  harnesses and are imported with `itsuite import-upstream`.
+wall_seconds: 7200
+repeat: 3
+budget_usd: 50
+budget_tokens: 50000000
+entries:
+  - {target: dvwa, mode: dast}
+  - {target: vampi, mode: dast}
+  - {target: juice-shop, mode: dast}
+  - {target: juice-shop, mode: sast}
+  - {target: owasp-benchmark-java, mode: sast}
+  - {target: owasp-benchmark-python, mode: sast}
+  - {target: castle, mode: sast}
+  - {target: creddata, mode: secrets}
+  - {target: cwe-bench-java, mode: sast}
+  - {target: ossf-cve-benchmark, mode: sast}
+  - {target: xbow, mode: ctf}
