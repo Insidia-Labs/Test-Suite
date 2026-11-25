@@ -211,7 +211,7 @@ def test_cli_list_validate_report(
     assert "dvwa" in out and "castle" not in out
     assert cli.main(["report", "--results", str(tmp_path)]) == 0
     assert "No scored runs" in capsys.readouterr().out
-    assert cli.main(["run", "--tool", "lynx", "--target", "dvwa", "--mode", "dast"]) == 2
+    assert cli.main(["run", "--tool", "taylon", "--target", "dvwa", "--mode", "dast"]) == 2
     assert "not-yet-available" in capsys.readouterr().err
 
 

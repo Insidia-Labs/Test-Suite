@@ -118,6 +118,35 @@ def test_pip_and_docker_installs(tmp_path: Path) -> None:
         tools.install(_tool(image), tmp_path, runner=Recorder(1))
 
 
+def test_a_pip_tool_can_ask_for_its_own_python(tmp_path: Path) -> None:
+    runner = Recorder()
+    spec = Install("pip", packages=("lynx @ git+https://x/lynx@abc",), binaries=("lynx",),
+                   python="3.14")  # fmt: skip
+    tools.install(_tool(spec), tmp_path, runner=runner)
+    venv = runner.calls[0]
+    assert venv[venv.index("--python") + 1] == "3.14"
+
+
+def test_pip_tools_default_to_the_suite_python(tmp_path: Path) -> None:
+    runner = Recorder()
+    tools.install(_tool(Install("pip", packages=("bandit==1.9.4",), binaries=("bandit",))),
+                  tmp_path, runner=runner)  # fmt: skip
+    venv = runner.calls[0]
+    assert venv[venv.index("--python") + 1] == tools.PIP_PYTHON
+
+
+def test_parse_install_reads_a_python_version_for_pip_only() -> None:
+    pip = {"kind": "pip", "packages": ["lynx @ git+https://x/lynx@abc"], "python": "3.14"}
+    parsed = parse_install(pip, "c")
+    assert parsed is not None and parsed.python == "3.14"
+    with pytest.raises(CatalogError, match="python"):
+        parse_install({**pip, "python": "latest"}, "c")
+    sha = "a" * 64
+    archive = {"kind": "archive", "url": "https://x/t", "sha256": sha, "binary": "t"}
+    with pytest.raises(CatalogError, match="python"):
+        parse_install({**archive, "python": "3.14"}, "c")
+
+
 SARIF_ADAPTER = """
 import json, pathlib, sys
 out = pathlib.Path(sys.argv[2])

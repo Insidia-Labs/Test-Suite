@@ -183,6 +183,7 @@ class Install:
     archive: download ``url`` (checked against ``sha256``) and take ``binary`` from it.
     binary:  download ``url`` (checked) and install it under the name ``binary``.
     pip:     a virtualenv with ``packages`` (exact versions); expose ``binaries``.
+             ``python`` picks the virtualenv's Python (default: the suite's).
     docker:  pull ``image`` (pinned by digest).
     """
 
@@ -193,6 +194,7 @@ class Install:
     packages: tuple[str, ...] = ()
     binaries: tuple[str, ...] = ()
     image: str = ""
+    python: str = ""
 
 
 @dataclass(frozen=True)

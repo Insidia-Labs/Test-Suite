@@ -86,7 +86,8 @@ def _install_binary(
 def _install_pip(tool: ToolSpec, spec: Install, paths: ToolPaths, runner: Runner) -> list[str]:
     venv = paths.venv(tool.id)
     if not (venv / "bin" / "python").exists():
-        _run(["uv", "venv", "-q", "--python", PIP_PYTHON, str(venv)], runner, f"{tool.id} venv")
+        version = spec.python or PIP_PYTHON
+        _run(["uv", "venv", "-q", "--python", version, str(venv)], runner, f"{tool.id} venv")
     python = str(venv / "bin" / "python")
     _run(["uv", "pip", "install", "-q", "--python", python, *spec.packages], runner,
          f"{tool.id} pip install")  # fmt: skip
