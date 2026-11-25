@@ -218,6 +218,7 @@ def parse_tool_mode(data: Mapping[str, Any], ctx: str) -> ToolMode:
 
 
 INSTALL_KINDS = ("archive", "binary", "pip", "docker")
+PYTHON_RE = re.compile(r"^3\.\d+$")
 
 
 def parse_install(data: Mapping[str, Any] | None, ctx: str) -> Install | None:
@@ -230,6 +231,7 @@ def parse_install(data: Mapping[str, Any] | None, ctx: str) -> Install | None:
         kind=kind, url=str(data.get("url", "")), sha256=str(data.get("sha256", "")),
         binary=str(data.get("binary", "")), packages=_strings(data, "packages"),
         binaries=_strings(data, "binaries"), image=str(data.get("image", "")),
+        python=str(data.get("python", "")),
     )  # fmt: skip
     if kind in ("archive", "binary"):
         if not install.url.startswith("https://") or not SHA256_RE.match(install.sha256):
@@ -238,6 +240,8 @@ def parse_install(data: Mapping[str, Any] | None, ctx: str) -> Install | None:
             raise CatalogError(f"{ctx}: {kind} installs need a binary name")
     if kind == "pip" and not all("==" in p or "@" in p for p in install.packages):
         raise CatalogError(f"{ctx}: pip packages must be pinned (name==version or name @ url)")
+    if install.python and (kind != "pip" or not PYTHON_RE.match(install.python)):
+        raise CatalogError(f"{ctx}: python is for pip installs and looks like 3.14")
     if kind == "docker" and "@sha256:" not in install.image:
         raise CatalogError(f"{ctx}: docker installs must pin the image by digest")
     return install

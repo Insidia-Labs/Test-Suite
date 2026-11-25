@@ -1,6 +1,6 @@
 {
  "note": "Written by itsuite lock. Do not edit; change the pins at their source.",
- "digest": "c5105b674c9beb0d65aa63a017feca496dc735c777503c50a672311cd2265120",
+ "digest": "b5833920840735d1741084d865600d6af7395a591b6e7c1f9bff1e840706e87a",
  "pins": [
   {"kind": "apt-snapshot", "ref": "20261119T000000Z", "used_by": "target damn-vulnerable-llm-agent"},
   {"kind": "apt-snapshot", "ref": "20261119T000000Z", "used_by": "target xbow"},
@@ -13,6 +13,7 @@
   {"kind": "archive", "ref": "https://samate.nist.gov/SARD/downloads/test-suites/2017-10-01-juliet-test-suite-for-java-v1-3.zip", "sha256": "d985f4177c2bcd7b03455a05c1c8f2e755f55c9eb250accd052f05f877347e60", "used_by": "target juliet-java"},
   {"kind": "git", "ref": "https://github.com/CASTLE-Benchmark/CASTLE-Source.git@765376ec24989f69a5ad523222784aa9d02cc6af", "used_by": "target castle"},
   {"kind": "git", "ref": "https://github.com/DLVulDet/PrimeVul.git@6f54687c84947b1d17486495440b37030d147289", "used_by": "target primevul"},
+  {"kind": "git", "ref": "https://github.com/Insidia-Labs/Lynx@4196164e4fbbab33ded4949b87d65f95880d7001", "used_by": "tool lynx"},
   {"kind": "git", "ref": "https://github.com/NYU-LLM-CTF/NYU_CTF_Bench.git@4c5744f55a31a58e03d6118c9dbb1c18e5bbdfa9", "used_by": "target nyu-ctf-bench"},
   {"kind": "git", "ref": "https://github.com/OWASP-Benchmark/BenchmarkJava.git@c6717ea295433deba1b20bb3127614833d005462", "used_by": "target owasp-benchmark-java"},
   {"kind": "git", "ref": "https://github.com/OWASP-Benchmark/BenchmarkPython.git@f1291485808b66e20ddb6b01b10dc71b3df8c8ba", "used_by": "target owasp-benchmark-python"},
